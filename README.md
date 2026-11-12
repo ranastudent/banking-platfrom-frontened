@@ -1,49 +1,58 @@
-# Banking Platform Frontend — Phase 1 + Phase 2
+# Banking Platform Frontend — Phase 1, 2 & 3
 
-This ZIP contains the user's Phase 1 project scaffold with Phase 2 design foundation and reusable components applied.
+React + Vite + TypeScript frontend starter for the Banking & Financial Management Platform.
 
 ## Requirements
 - Node.js 22 LTS recommended
 - npm 10+
 - VS Code
 
-## Install / update dependencies
+## Setup (Windows CMD)
 ```cmd
 npm install
-```
-No new third-party packages were added for Phase 2; Dialog, Dropdown and Tooltip use accessible React/browser primitives. `npm install` refreshes the lockfile if required.
-
-## Environment
-Create `.env` from `.env.example`:
-```cmd
 copy .env.example .env
 ```
-Keep `.env` local and never commit it.
+Keep `.env` local. Do not commit it or share access/refresh tokens.
 
-## Run
+`.env`:
+```env
+VITE_API_BASE_URL=https://banking-platform-api-dzm3.onrender.com
+```
+Set only the API origin; the client appends `/api/v1` exactly once. The health endpoint is outside that prefix: `/health`.
+
+## Run and verify
 ```cmd
+npm run typecheck
+npm run build
 npm run dev
 ```
 Open `http://localhost:5173`.
 
-## Verify
-```cmd
-npm run typecheck
-npm run build
-npm run preview
-```
+## Phase 3 implementation
+- 3.1 Axios API client with 20-second timeout, JSON headers and credentials.
+- 3.2 Environment-based API origin plus `/api/v1` prefix.
+- 3.3 Bearer access-token request interceptor.
+- 3.4 Central response interceptor with one-retry guard.
+- 3.5 Session-scoped access/refresh token storage utility.
+- 3.6 Single-flight refresh-token rotation; concurrent 401s share one refresh request; refresh failure clears session.
+- 3.7 React AuthProvider/useAuth state, initial session restoration via `/auth/me`, login/register/verify/logout methods.
+- 3.8 Normalized API errors including status, backend code, field errors and requestId.
+- 3.9 Authentication services for login, register, email verification, forgot/reset password, current user and logout.
+- 3.10 API client verification checklist in `src/lib/api/API_CLIENT_TESTING.md`.
 
-## Phase 2 contents
-- 2.1 Tailwind v4 semantic design tokens and CSS variables
-- 2.2 Light theme
-- 2.3 Dark theme
-- 2.4 ThemeProvider, localStorage persistence and theme toggle
-- 2.5 Typography scale and global styling
-- 2.6 Button variants and sizes
-- 2.7 Input and FormField components with hint/error states
-- 2.8 Card, CardHeader, CardTitle, CardDescription, CardContent and CardFooter
-- 2.9 Badge and StatusBadge
-- 2.10 Native accessible Dialog, Dropdown and Tooltip
-- 2.11 Component showcase for visual/manual testing
+## Backend contract notes
+The supplied backend source confirms:
+- Login returns user, accessToken and refreshToken.
+- Refresh accepts `{ refreshToken }`, rotates both tokens, and revokes the old refresh token.
+- Logout accepts `{ refreshToken }`.
+- `/auth/me` is protected by bearer authentication.
+- Forgot password accepts `{ email }`; reset password accepts `{ token, password }`.
+- Refresh-token expiry is 7 days in the inspected service.
 
-The showcase uses clearly labeled illustrative data only. It is not connected to the banking API and does not perform banking operations.
+The supplied frontend API guide notes that responses commonly use `{ success, data, requestId }`, but some endpoints differ. The auth service unwraps the common envelope and validates the login token result.
+
+## Security and scope
+Tokens are stored in `sessionStorage` for this portfolio/demo implementation, so they are cleared when the browser session ends. This is still accessible to JavaScript and is not equivalent to HttpOnly secure cookies; mitigate XSS and revisit the storage strategy before production. Do not log tokens. This is a demo application: use test users and isolated test data only; do not connect real customer funds or payment rails.
+
+## Phase 3 testing
+Follow `src/lib/api/API_CLIENT_TESTING.md`. TypeScript/build checks do not prove live API compatibility; verify with a dedicated test account against your backend.
