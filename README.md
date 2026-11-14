@@ -104,3 +104,25 @@ npm run dev
 ```
 
 Keep `.env` local and never include it in shared ZIP files or source control.
+
+
+## Phase 5 — Role-Based Portal Layout
+
+Implemented role-aware protected routes and shared portal layouts for CUSTOMER, ADMIN, SUPPORT, and AUDITOR.
+
+- Successful login redirects to the dashboard associated with the authenticated user's `role`.
+- Protected routes require an authenticated session and the matching role.
+- Shared sidebar, responsive mobile drawer, header, theme toggle, profile menu, and logout are included.
+- Unauthorized routes render a 403 page; unknown routes render a 404 page.
+- Dashboard metric values and chart areas are explicitly demo placeholders until the corresponding dashboard APIs are integrated.
+- Non-dashboard navigation routes are protected scaffolds for their designated phases; they are not represented as completed business features.
+- Auditor navigation is read-only in the UI. Backend authorization remains the security authority.
+
+### Local development
+
+Set `VITE_API_BASE_URL=http://localhost:5000` in your local `.env` and run `npm run dev`.
+Do not include `.env` in ZIP files or source control. For production builds, configure the deployed API origin through the production environment.
+
+### Phase 5 checks
+
+Run `npm run typecheck` and `npm run build`, then test with one account per role. Confirm the API's `/auth/me` response contains a canonical `role` value of `CUSTOMER`, `ADMIN`, `SUPPORT`, or `AUDITOR`.

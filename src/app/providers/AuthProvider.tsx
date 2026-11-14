@@ -58,8 +58,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = useCallback((payload: RegisterPayload) => authApi.register(payload), []);
   const verifyEmail = useCallback((payload: VerifyEmailPayload) => authApi.verifyEmail(payload), []);
   const logout = useCallback(async () => {
-    await authApi.logout();
-    setUser(null);
+    try {
+      await authApi.logout();
+    } finally {
+      setUser(null);
+    }
   }, []);
 
   const value = useMemo(() => ({

@@ -5,11 +5,12 @@ import { toast } from "sonner";
 import { useAuth } from "../../../app/providers/AuthProvider";
 import { AuthShell } from "../components/AuthShell";
 import { normalizeApiError } from "../../../lib/api/apiError";
+import { roleHome } from "../../../app/router/RoleRoutes";
 
 export function LoginPage() {
   const { login } = useAuth(); const navigate = useNavigate();
   const [email,setEmail]=useState(""); const [password,setPassword]=useState(""); const [show,setShow]=useState(false); const [busy,setBusy]=useState(false); const [remember,setRemember]=useState(false);
-  async function submit(e:FormEvent){e.preventDefault();setBusy(true);try{await login({email:email.trim(),password});toast.success("Login successful");navigate("/about");}catch(err){toast.error(normalizeApiError(err).message);}finally{setBusy(false);}}
+  async function submit(e:FormEvent){e.preventDefault();setBusy(true);try{const user = await login({email:email.trim(),password});toast.success("Login successful");navigate(roleHome(user.role),{replace:true});}catch(err){toast.error(normalizeApiError(err).message);}finally{setBusy(false);}}
   return <AuthShell title="Log In to Your Account" subtitle="Access your banking account securely" variant="login">
     <form className="auth-form" onSubmit={submit}>
       <label>Email Address<div className="auth-input-wrap"><Mail/><input type="email" autoComplete="email" required value={email} onChange={e=>setEmail(e.target.value)} placeholder="Enter your email"/></div></label>
