@@ -22,10 +22,20 @@ export const authApi = {
   async verifyEmail(payload: VerifyEmailPayload) {
     return unwrap(await api.post("/auth/verify-email", payload));
   },
-  async forgotPassword(email: string) {
-    return unwrap(await api.post("/auth/forgot-password", { email }));
+  async requestPasswordReset(email: string): Promise<unknown> {
+    return unwrap(await api.post("/auth/reset-password/request", { email }));
   },
-  async resetPassword(payload: { token: string; password: string }) {
+  async verifyPasswordResetOtp(email: string, otp: string): Promise<{ resetToken: string }> {
+    const result = unwrap<{ resetToken?: string; token?: string }>(
+      await api.post("/auth/reset-password/verify-otp", { email, otp }),
+    );
+    const resetToken = result.resetToken ?? result.token;
+    if (!resetToken) {
+      throw new Error("OTP verification response did not contain a reset token.");
+    }
+    return { resetToken };
+  },
+  async resetPassword(payload: { token: string; password: string }): Promise<unknown> {
     return unwrap(await api.post("/auth/reset-password", payload));
   },
   async me(): Promise<AuthUser> {

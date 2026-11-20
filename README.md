@@ -126,3 +126,19 @@ Do not include `.env` in ZIP files or source control. For production builds, con
 ### Phase 5 checks
 
 Run `npm run typecheck` and `npm run build`, then test with one account per role. Confirm the API's `/auth/me` response contains a canonical `role` value of `CUSTOMER`, `ADMIN`, `SUPPORT`, or `AUDITOR`.
+
+
+## Phase 6 customer portal implementation
+
+The CUSTOMER portal pages 07–19 are implemented in `src/features/customer/` and routed under `/customer`. See `docs/PHASE-6-CUSTOMER-IMPLEMENTATION.md` for the endpoint mapping, authoritative Light/Dark design references, and release-gate status.
+
+Run locally:
+
+```bash
+npm ci
+npm run typecheck
+npm run build
+npm run dev
+```
+
+Configure `VITE_API_BASE_URL` in `.env` to your backend origin (for example `http://localhost:5000`); the Axios client appends `/api/v1` exactly once.

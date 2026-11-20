@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
 import {
-  Activity, ArrowLeftRight, Bell, Building2, ChevronDown, CircleHelp, ClipboardList,
+  Activity, ArrowDownLeft, ArrowUpRight, ArrowLeftRight, Bell, Building2, ChevronDown, CircleHelp, ClipboardList,
    FileClock, FileText, Gauge, Globe2,  Home, Landmark, LogOut,
   Menu, Moon, Search, Settings, Shield, ShieldAlert, Sun, Users, Wallet, X, UserRound,
 } from "lucide-react";
@@ -15,9 +15,9 @@ const roleLabels: Record<PortalRole,string> = { CUSTOMER:"Customer", ADMIN:"Admi
 const navByRole = {
   CUSTOMER: [
     ["Dashboard","/customer/dashboard",Gauge],["My Accounts","/customer/accounts",Wallet],
-    ["Transactions","/customer/transactions",ArrowLeftRight],["Transfer Money","/customer/transfer",ArrowLeftRight],
+    ["Transactions","/customer/transactions",ArrowLeftRight],["Deposit","/customer/deposit",ArrowDownLeft],["Withdrawal","/customer/withdrawal",ArrowUpRight],["Transfer Money","/customer/transfer",ArrowLeftRight],
     ["Beneficiaries","/customer/beneficiaries",Users],["Notifications","/customer/notifications",Bell],
-    ["Profile & Settings","/customer/profile",Settings],
+    ["Decision Explanations","/customer/decision-explanations",FileText],["Profile & Settings","/customer/profile",Settings],
   ],
   ADMIN: [
     ["Admin Dashboard","/admin/dashboard",Gauge],["Users & Status","/admin/users",Users],
@@ -46,6 +46,7 @@ export function PortalLayout({ role }: { role: PortalRole }) {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
+  const location = useLocation();
   const [mobileOpen,setMobileOpen] = useState(false);
   const [profileOpen,setProfileOpen] = useState(false);
   const [loggingOut,setLoggingOut] = useState(false);
@@ -72,10 +73,10 @@ export function PortalLayout({ role }: { role: PortalRole }) {
     </aside>
     <main className="portal-main">
       <header className="portal-header">
-        <div className="portal-header-title"><button className="icon-button mobile-menu" onClick={()=>setMobileOpen(true)} aria-label="Open navigation menu"><Menu/></button><div><span className="header-kicker">{roleLabels[role]} workspace</span><strong>{roleLabels[role]} Dashboard</strong></div></div>
+        <div className="portal-header-title"><button className="icon-button mobile-menu" onClick={()=>setMobileOpen(true)} aria-label="Open navigation menu"><Menu/></button><div><span className="header-kicker">{roleLabels[role]} workspace</span><strong>{location.pathname.split("/").filter(Boolean).at(-1)?.replaceAll("-"," ")?.replace(/^./, c=>c.toUpperCase()) ?? roleLabels[role]}</strong></div></div>
         <div className="portal-header-actions">
           <label className="portal-search"><Search size={16}/><input aria-label="Search this workspace" placeholder="Search accounts, transactions, or help…"/><kbd>Ctrl + K</kbd></label>
-          <button className="icon-button" aria-label="Notifications"><Bell size={18}/><i className="notification-dot"/></button>
+          <button className="icon-button" aria-label="Notifications" onClick={()=>navigate(role==="CUSTOMER"?"/customer/notifications":`/${role.toLowerCase()}/dashboard`)}><Bell size={18}/><i className="notification-dot"/></button>
           <button className="icon-button" onClick={toggleTheme} aria-label={`Switch to ${theme==="light"?"dark":"light"} theme`}>{theme==="light"?<Moon size={18}/>:<Sun size={18}/>}</button>
           <div className="profile-wrap">
             <button className="profile-trigger" aria-expanded={profileOpen} onClick={()=>setProfileOpen(v=>!v)}><span className="avatar">{displayName.split(/\s+/).map(x=>x[0]).slice(0,2).join("").toUpperCase()}</span><span className="profile-copy"><strong>{displayName}</strong><small>{roleLabels[role]}</small></span><ChevronDown size={16}/></button>

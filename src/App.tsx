@@ -11,6 +11,9 @@ import { ForgotPasswordPage } from "./features/public/pages/ForgotPasswordPage";
 import { ResetPasswordPage } from "./features/public/pages/ResetPasswordPage";
 import { RequireAuth, RequireRole, roleHome } from "./app/router/RoleRoutes";
 import { PlaceholderPage, PortalDashboard, PortalLayout } from "./components/layout/PortalLayout";
+import { CustomerDashboardPage, TransactionsPage, TransactionDetailsPage, DepositPage, WithdrawalPage, TransferPage, BeneficiariesPage, NotificationsPage, ProfilePage, DecisionExplanationsPage, FxRequestDetailsPage } from "./features/customer/phase6/CustomerPages";
+import { AccountListPage } from "./features/customer/accounts/pages/AccountListPage";
+import { AccountDetailsPage } from "./features/customer/accounts/pages/AccountDetailsPage";
 
 function EntryRedirect() {
   const { user, isAuthenticated, isInitializing } = useAuth();
@@ -44,13 +47,13 @@ function App() {
               <Route path="/customer" element={<RequireRole allowed={["CUSTOMER"]}/>}>
                 <Route element={<PortalLayout role="CUSTOMER"/>}>
                   <Route index element={<Navigate to="dashboard" replace/>}/>
-                  <Route path="dashboard" element={<PortalDashboard role="CUSTOMER"/>}/>
-                  <Route path="accounts" element={page("My Accounts")}/>
-                  <Route path="transactions" element={page("Transactions")}/>
-                  <Route path="transfer" element={page("Transfer Money")}/>
-                  <Route path="beneficiaries" element={page("Beneficiaries")}/>
-                  <Route path="notifications" element={page("Notifications")}/>
-                  <Route path="profile" element={page("Profile & Settings")}/>
+                  <Route path="dashboard" element={<CustomerDashboardPage/>}/>
+                  <Route path="accounts" element={<AccountListPage/>}/><Route path="accounts/:accountId" element={<AccountDetailsPage/>}/>
+                  <Route path="transactions" element={<TransactionsPage/>}/><Route path="transactions/:transactionId" element={<TransactionDetailsPage/>}/>
+                  <Route path="transfer" element={<TransferPage/>}/><Route path="deposit" element={<DepositPage/>}/><Route path="withdrawal" element={<WithdrawalPage/>}/>
+                  <Route path="beneficiaries" element={<BeneficiariesPage/>}/>
+                  <Route path="notifications" element={<NotificationsPage/>}/>
+                  <Route path="profile" element={<ProfilePage/>}/><Route path="decision-explanations" element={<DecisionExplanationsPage/>}/><Route path="fx-requests/:requestId" element={<FxRequestDetailsPage/>}/>
                 </Route>
               </Route>
               <Route path="/admin" element={<RequireRole allowed={["ADMIN"]}/>}>
@@ -59,7 +62,7 @@ function App() {
                   <Route path="dashboard" element={<PortalDashboard role="ADMIN"/>}/>
                   <Route path="users" element={page("Users & Status")}/>
                   <Route path="accounts" element={page("Accounts")}/>
-                  <Route path="transactions" element={page("Transactions")}/>
+                  <Route path="transactions" element={<TransactionsPage/>}/><Route path="transactions/:transactionId" element={<TransactionDetailsPage/>}/>
                   <Route path="currencies" element={page("Currencies")}/>
                   <Route path="exchange-rates" element={page("Exchange Rates")}/>
                   <Route path="reserves" element={page("Currency Reserves")}/>

@@ -24,7 +24,15 @@ const refreshClient = axios.create({
 });
 
 let refreshPromise: Promise<string> | null = null;
-const AUTH_PATHS = ["/auth/login", "/auth/register", "/auth/verify-email", "/auth/refresh", "/auth/logout", "/auth/forgot-password", "/auth/reset-password"];
+const AUTH_PATHS = [
+  "/auth/login",
+  "/auth/register",
+  "/auth/verify-email",
+  "/auth/refresh",
+  "/auth/logout",
+  "/auth/forgot-password",
+  "/auth/reset-password",
+];
 
 api.interceptors.request.use((config) => {
   const token = tokenStorage.getAccessToken();
