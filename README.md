@@ -142,3 +142,19 @@ npm run dev
 ```
 
 Configure `VITE_API_BASE_URL` in `.env` to your backend origin (for example `http://localhost:5000`); the Axios client appends `/api/v1` exactly once.
+
+
+## CI/CD — GitHub Actions + AWS S3/CloudFront
+
+The workflow at `.github/workflows/frontend-cicd.yml` runs on pushes and pull requests
+targeting `main`. It installs locked dependencies with `npm ci`, runs the TypeScript
+check, and creates the Vite production build. A push to `main` additionally deploys the
+same build artifact to a private S3 bucket and invalidates the CloudFront entry-point cache.
+
+Before the first production deployment, configure the GitHub `production` Environment,
+AWS OIDC role, S3 bucket, CloudFront distribution, and the required GitHub variables/secrets.
+Follow [`docs/AWS_S3_CLOUDFRONT_DEPLOYMENT.md`](docs/AWS_S3_CLOUDFRONT_DEPLOYMENT.md)
+for the exact setup and least-privilege IAM examples.
+
+The frontend uses client-side routing. Configure CloudFront 403 and 404 custom error
+responses to serve `/index.html` with response code 200; keep the S3 bucket private.
