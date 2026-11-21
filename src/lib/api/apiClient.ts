@@ -30,7 +30,8 @@ const AUTH_PATHS = [
   "/auth/verify-email",
   "/auth/refresh",
   "/auth/logout",
-  "/auth/forgot-password",
+  "/auth/reset-password/request",
+  "/auth/reset-password/verify-otp",
   "/auth/reset-password",
 ];
 
