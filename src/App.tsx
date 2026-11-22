@@ -15,6 +15,11 @@ import { CustomerDashboardPage, TransactionsPage, TransactionDetailsPage, Deposi
 import { AccountListPage } from "./features/customer/accounts/pages/AccountListPage";
 import { AccountDetailsPage } from "./features/customer/accounts/pages/AccountDetailsPage";
 import {
+  SupportDashboardPage, SupportCustomerSearchPage, SupportCustomerAccountsPage,
+  SupportCustomerTransactionsPage, SupportBeneficiaryAssistancePage, SupportOperationsPage,
+  SupportAuditLogsPage,
+} from "./features/support/SupportPages";
+import {
   AdminDashboardPage, AdminUsersPage, AdminUserDetailsPage, AdminAccountsPage, AdminAccountDetailsPage,
   AdminTransactionsPage, AdminTransactionDetailsPage, AdminAuditLogsPage, AdminCurrenciesPage,
   AdminExchangeRatesPage, AdminReservesPage, AdminFxApprovalsPage, AdminRiskReviewsPage,
@@ -82,15 +87,15 @@ function App() {
               <Route path="/support" element={<RequireRole allowed={["SUPPORT"]}/>}>
                 <Route element={<PortalLayout role="SUPPORT"/>}>
                   <Route index element={<Navigate to="dashboard" replace/>}/>
-                  <Route path="dashboard" element={<PortalDashboard role="SUPPORT"/>}/>
-                  <Route path="customers" element={page("Customer Lookup")}/>
-                  <Route path="accounts" element={page("Account Assistance")}/>
-                  <Route path="transactions" element={page("Transaction Assistance")}/>
-                  <Route path="beneficiaries" element={page("Beneficiary Assistance")}/>
+                  <Route path="dashboard" element={<SupportDashboardPage/>}/>
+                  <Route path="customers" element={<SupportCustomerSearchPage/>}/>
+                  <Route path="accounts" element={<SupportCustomerAccountsPage/>}/>
+                  <Route path="transactions" element={<SupportCustomerTransactionsPage/>}/>
+                  <Route path="beneficiaries" element={<SupportBeneficiaryAssistancePage/>}/>
                   <Route path="tickets" element={page("Support Tickets")}/>
-                  <Route path="operations" element={page("Support Operations")}/>
+                  <Route path="operations" element={<SupportOperationsPage/>}/>
                   <Route path="fx-requests" element={page("FX Requests (Read)")}/>
-                  <Route path="audit-logs" element={page("Support Audit Logs")}/>
+                  <Route path="audit-logs" element={<SupportAuditLogsPage/>}/>
                 </Route>
               </Route>
               <Route path="/auditor" element={<RequireRole allowed={["AUDITOR"]}/>}>

@@ -29,11 +29,10 @@ const navByRole = {
     ["Monitoring Events","/admin/monitoring",Activity],["Audit Logs","/admin/audit-logs",FileClock],
   ],
   SUPPORT: [
-    ["Support Dashboard","/support/dashboard",Gauge],["Customer Lookup","/support/customers",Users],
-    ["Account Assistance","/support/accounts",Wallet],["Transaction Assistance","/support/transactions",ArrowLeftRight],
-    ["Beneficiary Assistance","/support/beneficiaries",Users],["Support Tickets","/support/tickets",FileText],
-    ["Support Operations","/support/operations",Settings],["FX Requests (Read)","/support/fx-requests",Globe2],
-    ["Support Audit Logs","/support/audit-logs",FileClock],
+    ["Support Dashboard","/support/dashboard",Gauge],["Customer Search","/support/customers",Users],
+    ["Customer Accounts","/support/accounts",Wallet],["Customer Transactions","/support/transactions",ArrowLeftRight],
+    ["Beneficiary Assistance","/support/beneficiaries",Users],
+    ["Support Operations","/support/operations",Settings],["Support Audit Logs","/support/audit-logs",FileClock],
   ],
   AUDITOR: [
     ["Auditor Dashboard","/auditor/dashboard",Gauge],["Audit Logs","/auditor/audit-logs",FileClock],
