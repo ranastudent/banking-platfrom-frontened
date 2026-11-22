@@ -24,8 +24,9 @@ const navByRole = {
     ["Accounts","/admin/accounts",Wallet],["Transactions","/admin/transactions",ArrowLeftRight],
     ["Currencies","/admin/currencies",Globe2],["Exchange Rates","/admin/exchange-rates",Activity],
     ["Currency Reserves","/admin/reserves",Building2],["FX Approvals","/admin/fx-approvals",ClipboardList],
-    ["Risk Reviews","/admin/risk-reviews",ShieldAlert],["Fraud Management","/admin/fraud",Shield],
-    ["Monitoring","/admin/monitoring",Activity],["Audit Logs","/admin/audit-logs",FileClock],
+    ["Risk Reviews","/admin/risk-reviews",ShieldAlert],["Fraud Dashboard","/admin/fraud",Shield],["Fraud Alerts","/admin/fraud/alerts",ShieldAlert],
+    ["Fraud Cases","/admin/fraud/cases",ClipboardList],["Fraud Models","/admin/fraud/models",Shield],
+    ["Monitoring Events","/admin/monitoring",Activity],["Audit Logs","/admin/audit-logs",FileClock],
   ],
   SUPPORT: [
     ["Support Dashboard","/support/dashboard",Gauge],["Customer Lookup","/support/customers",Users],

@@ -14,6 +14,12 @@ import { PlaceholderPage, PortalDashboard, PortalLayout } from "./components/lay
 import { CustomerDashboardPage, TransactionsPage, TransactionDetailsPage, DepositPage, WithdrawalPage, TransferPage, BeneficiariesPage, NotificationsPage, ProfilePage, DecisionExplanationsPage, FxRequestDetailsPage } from "./features/customer/phase6/CustomerPages";
 import { AccountListPage } from "./features/customer/accounts/pages/AccountListPage";
 import { AccountDetailsPage } from "./features/customer/accounts/pages/AccountDetailsPage";
+import {
+  AdminDashboardPage, AdminUsersPage, AdminUserDetailsPage, AdminAccountsPage, AdminAccountDetailsPage,
+  AdminTransactionsPage, AdminTransactionDetailsPage, AdminAuditLogsPage, AdminCurrenciesPage,
+  AdminExchangeRatesPage, AdminReservesPage, AdminFxApprovalsPage, AdminRiskReviewsPage,
+  FraudDashboardPage, FraudAlertsPage, FraudCasesPage, FraudModelsPage, MonitoringPage,
+} from "./features/admin/AdminPages";
 
 function EntryRedirect() {
   const { user, isAuthenticated, isInitializing } = useAuth();
@@ -59,18 +65,18 @@ function App() {
               <Route path="/admin" element={<RequireRole allowed={["ADMIN"]}/>}>
                 <Route element={<PortalLayout role="ADMIN"/>}>
                   <Route index element={<Navigate to="dashboard" replace/>}/>
-                  <Route path="dashboard" element={<PortalDashboard role="ADMIN"/>}/>
-                  <Route path="users" element={page("Users & Status")}/>
-                  <Route path="accounts" element={page("Accounts")}/>
-                  <Route path="transactions" element={<TransactionsPage/>}/><Route path="transactions/:transactionId" element={<TransactionDetailsPage/>}/>
-                  <Route path="currencies" element={page("Currencies")}/>
-                  <Route path="exchange-rates" element={page("Exchange Rates")}/>
-                  <Route path="reserves" element={page("Currency Reserves")}/>
-                  <Route path="fx-approvals" element={page("FX Approvals")}/>
-                  <Route path="risk-reviews" element={page("Risk Reviews")}/>
-                  <Route path="fraud" element={page("Fraud Management")}/>
-                  <Route path="monitoring" element={page("Monitoring")}/>
-                  <Route path="audit-logs" element={page("Audit Logs")}/>
+                  <Route path="dashboard" element={<AdminDashboardPage/>}/>
+                  <Route path="users" element={<AdminUsersPage/>}/><Route path="users/:userId" element={<AdminUserDetailsPage/>}/>
+                  <Route path="accounts" element={<AdminAccountsPage/>}/><Route path="accounts/:accountId" element={<AdminAccountDetailsPage/>}/>
+                  <Route path="transactions" element={<AdminTransactionsPage/>}/><Route path="transactions/:transactionId" element={<AdminTransactionDetailsPage/>}/>
+                  <Route path="currencies" element={<AdminCurrenciesPage/>}/>
+                  <Route path="exchange-rates" element={<AdminExchangeRatesPage/>}/>
+                  <Route path="reserves" element={<AdminReservesPage/>}/>
+                  <Route path="fx-approvals" element={<AdminFxApprovalsPage/>}/>
+                  <Route path="risk-reviews" element={<AdminRiskReviewsPage/>}/>
+                  <Route path="fraud" element={<FraudDashboardPage/>}/><Route path="fraud/alerts" element={<FraudAlertsPage/>}/><Route path="fraud/cases" element={<FraudCasesPage/>}/><Route path="fraud/models" element={<FraudModelsPage/>}/>
+                  <Route path="monitoring" element={<MonitoringPage/>}/>
+                  <Route path="audit-logs" element={<AdminAuditLogsPage/>}/>
                 </Route>
               </Route>
               <Route path="/support" element={<RequireRole allowed={["SUPPORT"]}/>}>

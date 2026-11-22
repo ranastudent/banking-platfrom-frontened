@@ -158,3 +158,8 @@ for the exact setup and least-privilege IAM examples.
 
 The frontend uses client-side routing. Configure CloudFront 403 and 404 custom error
 responses to serve `/index.html` with response code 200; keep the S3 bucket private.
+
+
+## Phase 7 Admin implementation
+
+See [Phase 7 implementation notes](docs/PHASE_7_IMPLEMENTATION.md) for the page-to-route map, API behavior and contract limitations.
