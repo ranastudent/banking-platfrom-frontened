@@ -36,9 +36,9 @@ const navByRole = {
   ],
   AUDITOR: [
     ["Auditor Dashboard","/auditor/dashboard",Gauge],["Audit Logs","/auditor/audit-logs",FileClock],
-    ["Transactions (Read)","/auditor/transactions",ArrowLeftRight],["Account Activity","/auditor/account-activity",Activity],
-    ["Approval Records","/auditor/approvals",ClipboardList],["FX Requests (Read)","/auditor/fx-requests",Globe2],
-    ["Currencies (Read)","/auditor/currencies",Globe2],["Reserves (Read)","/auditor/reserves",Building2],
+    ["Transaction Review","/auditor/transactions",ArrowLeftRight],["Account Activity","/auditor/account-activity",Activity],
+    ["Approval Records","/auditor/approvals",ClipboardList],["FX Request Review","/auditor/fx-requests",Globe2],
+    ["Currency & Reserve Review","/auditor/currencies",Building2],
   ],
 } satisfies Record<PortalRole, [string,string,typeof Gauge][]>;
 

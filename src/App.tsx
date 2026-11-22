@@ -10,7 +10,7 @@ import { VerifyEmailPage } from "./features/public/pages/VerifyEmailPage";
 import { ForgotPasswordPage } from "./features/public/pages/ForgotPasswordPage";
 import { ResetPasswordPage } from "./features/public/pages/ResetPasswordPage";
 import { RequireAuth, RequireRole, roleHome } from "./app/router/RoleRoutes";
-import { PlaceholderPage, PortalDashboard, PortalLayout } from "./components/layout/PortalLayout";
+import { PlaceholderPage, PortalLayout } from "./components/layout/PortalLayout";
 import { CustomerDashboardPage, TransactionsPage, TransactionDetailsPage, DepositPage, WithdrawalPage, TransferPage, BeneficiariesPage, NotificationsPage, ProfilePage, DecisionExplanationsPage, FxRequestDetailsPage } from "./features/customer/phase6/CustomerPages";
 import { AccountListPage } from "./features/customer/accounts/pages/AccountListPage";
 import { AccountDetailsPage } from "./features/customer/accounts/pages/AccountDetailsPage";
@@ -25,6 +25,15 @@ import {
   AdminExchangeRatesPage, AdminReservesPage, AdminFxApprovalsPage, AdminRiskReviewsPage,
   FraudDashboardPage, FraudAlertsPage, FraudCasesPage, FraudModelsPage, MonitoringPage,
 } from "./features/admin/AdminPages";
+import {
+  AuditorDashboardPage,
+  AuditorAuditLogsPage,
+  AuditorTransactionsPage,
+  AuditorAccountActivityPage,
+  AuditorApprovalsPage,
+  AuditorFxRequestsPage,
+  AuditorCurrencyReservePage,
+} from "./features/auditor/AuditorPages";
 
 function EntryRedirect() {
   const { user, isAuthenticated, isInitializing } = useAuth();
@@ -101,14 +110,14 @@ function App() {
               <Route path="/auditor" element={<RequireRole allowed={["AUDITOR"]}/>}>
                 <Route element={<PortalLayout role="AUDITOR"/>}>
                   <Route index element={<Navigate to="dashboard" replace/>}/>
-                  <Route path="dashboard" element={<PortalDashboard role="AUDITOR"/>}/>
-                  <Route path="audit-logs" element={page("Audit Logs (Read Only)")}/>
-                  <Route path="transactions" element={page("Transactions (Read Only)")}/>
-                  <Route path="account-activity" element={page("Account Activity")}/>
-                  <Route path="approvals" element={page("Approval Records")}/>
-                  <Route path="fx-requests" element={page("FX Requests (Read Only)")}/>
-                  <Route path="currencies" element={page("Currencies (Read Only)")}/>
-                  <Route path="reserves" element={page("Reserves (Read Only)")}/>
+                  <Route path="dashboard" element={<AuditorDashboardPage/>}/>
+                  <Route path="audit-logs" element={<AuditorAuditLogsPage/>}/>
+                  <Route path="transactions" element={<AuditorTransactionsPage/>}/>
+                  <Route path="account-activity" element={<AuditorAccountActivityPage/>}/>
+                  <Route path="approvals" element={<AuditorApprovalsPage/>}/>
+                  <Route path="fx-requests" element={<AuditorFxRequestsPage/>}/>
+                  <Route path="currencies" element={<AuditorCurrencyReservePage/>}/>
+                  <Route path="reserves" element={<AuditorCurrencyReservePage/>}/>
                 </Route>
               </Route>
             </Route>
