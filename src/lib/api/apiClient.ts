@@ -3,7 +3,12 @@ import type { AxiosError, InternalAxiosRequestConfig } from "axios";
 import { tokenStorage } from "./tokenStorage";
 
 const configuredOrigin = import.meta.env.VITE_API_BASE_URL?.trim();
-const API_ORIGIN = (configuredOrigin || "https://banking-platform-api-dzm3.onrender.com").replace(/\/+$/, "");
+if (!configuredOrigin) {
+  throw new Error(
+    "VITE_API_BASE_URL is required. Configure the backend origin in the environment; no production API fallback is used.",
+  );
+}
+const API_ORIGIN = configuredOrigin.replace(/\/+$/, "");
 const API_PREFIX = "/api/v1";
 export const API_BASE_URL = `${API_ORIGIN}${API_PREFIX}`;
 

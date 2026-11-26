@@ -21,7 +21,7 @@ const navByRole = {
   ],
   ADMIN: [
     ["Admin Dashboard","/admin/dashboard",Gauge],["Users & Status","/admin/users",Users],
-    ["Accounts","/admin/accounts",Wallet],["Transactions","/admin/transactions",ArrowLeftRight],
+    ["Accounts","/admin/accounts",Wallet],["Transactions","/admin/transactions",ArrowLeftRight],["Deposits","/admin/deposits",ArrowDownLeft],
     ["Currencies","/admin/currencies",Globe2],["Exchange Rates","/admin/exchange-rates",Activity],
     ["Currency Reserves","/admin/reserves",Building2],["FX Approvals","/admin/fx-approvals",ClipboardList],
     ["Risk Reviews","/admin/risk-reviews",ShieldAlert],["Fraud Dashboard","/admin/fraud",Shield],["Fraud Alerts","/admin/fraud/alerts",ShieldAlert],

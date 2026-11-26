@@ -2,15 +2,30 @@ import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../../lib/api/apiClient";
+import { unwrapApiData } from "../../../lib/api/apiTypes";
+import type {
+  CustomerAccount,
+  CustomerBeneficiary,
+  CustomerTransaction,
+  CustomerAccountListResponse,
+  CustomerTransactionListResponse,
+  CustomerBeneficiaryListResponse,
+  CreateInternalTransferRequest,
+  TransferResponseData,
+  CustomerNotificationListResponse,
+  CustomerProfile,
+  CustomerDecisionExplanation,
+  CustomerFxRequest,
+} from "../customer.types";
 import { useAuth } from "../../../app/providers/AuthProvider";
 import { toast } from "sonner";
 import { ArrowDownLeft, ArrowUpRight, ArrowLeftRight, Bell, Check, ChevronLeft, CircleAlert, CreditCard, RefreshCw, Search, ShieldCheck, UserRound, Wallet } from "lucide-react";
 
 import type { ReactNode } from "react";
 type AnyRecord = Record<string, any>;
-type Account = { id:string; accountNumber:string; accountType:string; status:string; balances?: { currencyCode:string; availableBalance:string|number; lockedBalance?:string|number }[] };
-type Tx = { id:string; reference?:string; type:string; status:string; amount:string|number; currencyCode:string; createdAt:string; sourceAccount?:AnyRecord; destinationAccount?:AnyRecord; description?:string };
-const unwrap = (r:any) => r?.data?.data ?? r?.data ?? {};
+type Account = CustomerAccount;
+type Tx = CustomerTransaction;
+const unwrap = <T = AnyRecord>(response: unknown): T => unwrapApiData<T>(response);
 const money = (value:any, currency="BDT") => {
   const n=Number(value); if(!Number.isFinite(n)) return "—";
   try { return new Intl.NumberFormat(undefined,{style:"currency",currency,maximumFractionDigits:2}).format(n); } catch { return `${currency} ${n.toFixed(2)}`; }
@@ -19,8 +34,24 @@ const date = (v:any) => v ? new Date(v).toLocaleString() : "—";
 const errorMessage = (e:any) => e?.response?.data?.error?.message ?? e?.response?.data?.message ?? e?.message ?? "Something went wrong. Please try again.";
 function PageHeading({title,subtitle,action}:{title:string;subtitle:string;action?:ReactNode}) { return <div className="p6-heading"><div><p className="eyebrow">CUSTOMER WORKSPACE</p><h1>{title}</h1><p className="muted">{subtitle}</p></div>{action}</div>; }
 function State({kind="loading",message, retry}:{kind?:"loading"|"empty"|"error"|"denied";message?:string;retry?:()=>void}) { return <div className={`p6-state p6-${kind}`} role={kind==="loading"?"status":"alert"}><span>{kind==="loading"?<RefreshCw size={20}/>:kind==="denied"?<ShieldCheck size={20}/>:<CircleAlert size={20}/>}</span><strong>{message ?? ({loading:"Loading your information…",empty:"Nothing to show yet.",error:"We could not load this information.",denied:"You do not have permission to access this information."}[kind])}</strong>{retry&&<button className="btn btn-secondary" onClick={retry}>Try again</button>}</div>; }
-function useAccounts() { return useQuery({queryKey:["customer","accounts"],queryFn:async()=>{const d=unwrap(await api.get("/accounts"));return (d.accounts??[]) as Account[];}}); }
-function useTransactions(params:AnyRecord={}) { return useQuery({queryKey:["customer","transactions",params],queryFn:async()=>{const d=unwrap(await api.get("/transactions",{params:{page:1,limit:20,...params}}));return {rows:(d.transactions??[]) as Tx[],pagination:d.pagination};}}); }
+function useAccounts() {
+  return useQuery<Account[]>({
+    queryKey: ["customer", "accounts"],
+    queryFn: async () =>
+      unwrap<CustomerAccountListResponse>(await api.get("/accounts")).accounts,
+  });
+}
+function useTransactions(params: AnyRecord = {}) {
+  return useQuery<{ rows: Tx[]; pagination: CustomerTransactionListResponse["pagination"] }>({
+    queryKey: ["customer", "transactions", params],
+    queryFn: async () => {
+      const result = unwrap<CustomerTransactionListResponse>(
+        await api.get("/transactions", { params: { page: 1, limit: 20, ...params } }),
+      );
+      return { rows: result.transactions, pagination: result.pagination };
+    },
+  });
+}
 function Status({value}:{value?:string}) { const v=value??"UNKNOWN"; return <span className={`p6-status status-${v.toLowerCase()}`}>{v.replaceAll("_"," ")}</span>; }
 function TableShell({children}:{children:ReactNode}) { return <div className="p6-table-wrap"><table className="p6-table">{children}</table></div>; }
 
@@ -51,11 +82,23 @@ export function TransactionsPage() {
 }
 
 export function TransactionDetailsPage() {
- const {transactionId=""}=useParams(); const q=useQuery({queryKey:["transaction",transactionId],queryFn:async()=>unwrap(await api.get(`/transactions/${transactionId}`)).transaction});
+ const {transactionId=""}=useParams();
+ const q=useQuery({queryKey:["transaction",transactionId],queryFn:async()=>unwrap<{transaction: Tx&AnyRecord}>(await api.get(`/transactions/${encodeURIComponent(transactionId)}`)).transaction});
+ const accounts=useAccounts();
  if(q.isLoading)return <section className="portal-content"><State/></section>;
  if(q.isError)return <section className="portal-content"><State kind={q.error&&((q.error as any).response?.status===403)?"denied":"error"} message={errorMessage(q.error)} retry={()=>void q.refetch()}/></section>;
  const t=q.data as Tx&AnyRecord;
- return <section className="portal-content p6-content"><PageHeading title="Transaction details" subtitle="Read-only details returned by the transaction API." action={<Link className="btn btn-secondary" to="/customer/transactions"><ChevronLeft size={16}/> Back to transactions</Link>}/><article className="portal-card p6-panel"><div className="p6-detail-amount"><span>{t.type?.replaceAll("_"," ")}</span><strong>{money(t.amount,t.currencyCode)}</strong><Status value={t.status}/></div><div className="p6-detail-grid">{Object.entries({Reference:t.reference,ID:t.id,Currency:t.currencyCode,Type:t.type,Status:t.status,Created:date(t.createdAt),Updated:date(t.updatedAt),Description:t.description}).filter(([,v])=>v!==undefined&&v!==null).map(([k,v])=><div key={k}><small>{k}</small><strong>{String(v)}</strong></div>)}</div></article></section>;
+ const ownedAccounts=accounts.data??[];
+ const accountById=new Map(ownedAccounts.map(account=>[account.id,account]));
+ const sourceId=String(t.sourceAccountId??t.sourceAccount?.id??"");
+ const destinationId=String(t.destinationAccountId??t.destinationAccount?.id??"");
+ const isDebit=Boolean(sourceId&&accountById.has(sourceId));
+ const isCredit=Boolean(destinationId&&accountById.has(destinationId));
+ const direction=isDebit?"DEBIT":isCredit?"CREDIT":"—";
+ const signedAmount=isDebit?`−${money(t.amount,t.currencyCode)}`:isCredit?`+${money(t.amount,t.currencyCode)}`:money(t.amount,t.currencyCode);
+ const sourceAccountNumber=accountById.get(sourceId)?.accountNumber??t.sourceAccount?.accountNumber;
+ const destinationAccountNumber=accountById.get(destinationId)?.accountNumber??t.destinationAccount?.accountNumber;
+ return <section className="portal-content p6-content"><PageHeading title="Transaction details" subtitle="Read-only details returned by the transaction API." action={<Link className="btn btn-secondary" to="/customer/transactions"><ChevronLeft size={16}/> Back to transactions</Link>}/><article className="portal-card p6-panel"><div className="p6-detail-amount"><span>{isDebit?"TRANSFER SENT":isCredit?"TRANSFER RECEIVED":t.type?.replaceAll("_"," ")}</span><strong>{signedAmount}</strong><Status value={t.status}/></div><div className="p6-detail-grid">{Object.entries({Reference:t.reference,ID:t.id,Direction:direction,"Sender account":sourceAccountNumber,"Receiver account":destinationAccountNumber,Currency:t.currencyCode,Type:t.type,Status:t.status,Created:date(t.createdAt),Updated:date(t.updatedAt),Description:t.description}).filter(([,v])=>v!==undefined&&v!==null&&v!=="").map(([k,v])=><div key={k}><small>{k}</small><strong>{String(v)}</strong></div>)}</div>{accounts.isError&&<p className="muted">Account labels could not be loaded; signed direction is based on the account information returned by the API.</p>}</article></section>;
 }
 
 function MoneyMovementPage({mode}:{mode:"deposit"|"withdrawal"}) {
@@ -69,23 +112,252 @@ export function DepositPage(){return <MoneyMovementPage mode="deposit"/>}
 export function WithdrawalPage(){return <MoneyMovementPage mode="withdrawal"/>}
 
 export function TransferPage() {
- const accounts=useAccounts(); const beneficiaries=useQuery({queryKey:["beneficiaries"],queryFn:async()=>unwrap(await api.get("/beneficiaries",{params:{page:1,limit:100}})).beneficiaries??[]});
- const qc=useQueryClient(); const [sender,setSender]=useState(""); const [receiver,setReceiver]=useState(""); const [amount,setAmount]=useState(""); const [currency,setCurrency]=useState("BDT"); const [idem,setIdem]=useState("");
- const mutation=useMutation({mutationFn:async()=>{const key=idem||crypto.randomUUID();setIdem(key);return unwrap(await api.post("/transfers",{senderAccount:sender,receiverAccount:receiver,amount,currency:currency.toUpperCase()},{headers:{"Idempotency-Key":key}}));},onSuccess:async d=>{toast.success(d?.message??"Transfer request submitted.");setAmount("");setIdem("");await Promise.all([qc.invalidateQueries({queryKey:["customer","accounts"]}),qc.invalidateQueries({queryKey:["customer","transactions"]})]);},onError:e=>toast.error(errorMessage(e))});
- return <section className="portal-content p6-content"><PageHeading title="Fund transfer" subtitle="Transfer between accounts using the verified internal transfer endpoint."/><div className="p6-form-layout"><article className="portal-card p6-panel"><form className="p6-form" onSubmit={e=>{e.preventDefault();mutation.mutate();}}><label>From account<select required value={sender} onChange={e=>{setSender(e.target.value);setIdem("");}}><option value="">Choose source account</option>{(accounts.data??[]).map(a=><option key={a.id} value={a.id}>{a.accountNumber} · {a.accountType}</option>)}</select></label><label>Receiver account ID<input required value={receiver} onChange={e=>{setReceiver(e.target.value.trim());setIdem("");}} placeholder="Enter receiver account UUID"/><small>The transfer API expects the receiver account identifier, not its display account number.</small></label>{beneficiaries.data?.some((b:AnyRecord)=>b.beneficiaryType==="INTERNAL"&&b.provider==="INTERNAL")&&<label>Saved internal beneficiaries<select value="" onChange={e=>{const x=beneficiaries.data.find((b:AnyRecord)=>b.id===e.target.value);if(x)setReceiver(x.accountReference);}}><option value="">Choose a saved beneficiary (optional)</option>{beneficiaries.data.filter((b:AnyRecord)=>b.beneficiaryType==="INTERNAL"&&b.provider==="INTERNAL").map((b:AnyRecord)=><option key={b.id} value={b.id}>{b.displayName} · {b.accountReference}</option>)}</select></label>}<label>Amount<input required inputMode="decimal" pattern="^\d+(\.\d{1,8})?$" min="0.00000001" value={amount} onChange={e=>{setAmount(e.target.value);setIdem("");}} placeholder="0.00"/></label><label>Currency<input required value={currency} maxLength={3} minLength={3} pattern="[A-Za-z]{3}" onChange={e=>{setCurrency(e.target.value.toUpperCase());setIdem("");}}/></label><div className="p6-info-box"><ShieldCheck size={16}/> Transfers are final financial operations in this demo environment. Confirm receiver account and amount. Risk review may hold a transfer; a 202 response is not a completed money movement.</div><button className="btn btn-primary" disabled={mutation.isPending||!sender||!receiver||!amount||Number(amount)<=0}>{mutation.isPending?"Submitting…":"Submit transfer"}</button>{mutation.isError&&<p className="p6-error-text" role="alert">{errorMessage(mutation.error)}{idem&&" Retry the same request with the same idempotency key."}</p>}{mutation.isSuccess&&<div className="p6-success-box"><Check/>{mutation.data?.message??"Transfer request accepted"}{mutation.data?.transaction?.id&&<div>Transaction: {mutation.data.transaction.id}</div>}</div>}</form></article><aside className="portal-card p6-panel"><h2>Before you transfer</h2><ul className="p6-steps"><li>Sender must be one of your own accounts.</li><li>Receiver account ID must identify a valid, active account.</li><li>Currency must be supported by both accounts.</li><li>Backend may place a transfer on hold for risk review.</li></ul><p className="muted">Canonical API: POST /api/v1/transfers. Legacy transaction transfer route only authorizes; it does not move money.</p></aside></div></section>;
+  const accounts = useAccounts();
+  const beneficiaries = useQuery<CustomerBeneficiary[]>({
+    queryKey: ["beneficiaries"],
+    queryFn: async () =>
+      unwrap<CustomerBeneficiaryListResponse>(
+        await api.get("/beneficiaries", { params: { page: 1, limit: 100 } }),
+      ).beneficiaries,
+  });
+  const qc = useQueryClient();
+
+  // Canonical API contract: both fields contain customer-facing account numbers.
+  const [sender, setSender] = useState("");
+  const [receiver, setReceiver] = useState("");
+  const [amount, setAmount] = useState("");
+  const [currency, setCurrency] = useState("BDT");
+  const [idem, setIdem] = useState("");
+
+  const selectedSender = accounts.data?.find(
+    (account) => account.accountNumber === sender,
+  );
+
+  const mutation = useMutation<TransferResponseData, Error, void>({
+    mutationFn: async () => {
+      const key = idem || crypto.randomUUID();
+      setIdem(key);
+
+      const payload: CreateInternalTransferRequest = {
+        senderAccount: sender,
+        receiverAccount: receiver.trim(),
+        amount,
+        currency: currency.toUpperCase(),
+      };
+
+      return unwrap<TransferResponseData>(
+        await api.post("/transfers", payload, {
+          headers: { "Idempotency-Key": key },
+        }),
+      );
+    },
+    onSuccess: async (result) => {
+      toast.success(result.message ?? "Transfer request submitted.");
+      setAmount("");
+      setIdem("");
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["customer", "accounts"] }),
+        qc.invalidateQueries({ queryKey: ["customer", "transactions"] }),
+      ]);
+    },
+    onError: (error) => toast.error(errorMessage(error)),
+  });
+
+  return (
+    <section className="portal-content p6-content">
+      <PageHeading
+        title="Fund transfer"
+        subtitle="Transfer between accounts using customer-facing account numbers."
+      />
+      <div className="p6-form-layout">
+        <article className="portal-card p6-panel">
+          <form
+            className="p6-form"
+            onSubmit={(event) => {
+              event.preventDefault();
+              mutation.mutate();
+            }}
+          >
+            <label>
+              From account
+              <select
+                required
+                value={sender}
+                onChange={(event) => {
+                  const nextAccountNumber = event.target.value;
+                  const nextAccount = accounts.data?.find(
+                    (account) => account.accountNumber === nextAccountNumber,
+                  );
+                  setSender(nextAccountNumber);
+                  setCurrency(nextAccount?.balances?.[0]?.currencyCode ?? "BDT");
+                  setIdem("");
+                }}
+              >
+                <option value="">Choose source account</option>
+                {(accounts.data ?? []).map((account) => (
+                  <option key={account.id} value={account.accountNumber}>
+                    {account.accountNumber} · {account.accountType}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              Receiver account number
+              <input
+                required
+                inputMode="numeric"
+                autoComplete="off"
+                value={receiver}
+                onChange={(event) => {
+                  setReceiver(event.target.value.trim());
+                  setIdem("");
+                }}
+                placeholder="Enter recipient account number"
+              />
+              <small>
+                Enter the recipient’s customer-facing account number. Do not enter
+                an internal database ID.
+              </small>
+            </label>
+
+            {beneficiaries.data?.some(
+              (beneficiary) =>
+                beneficiary.beneficiaryType === "INTERNAL" &&
+                beneficiary.provider === "INTERNAL",
+            ) && (
+              <label>
+                Saved internal beneficiaries
+                <select
+                  value=""
+                  onChange={(event) => {
+                    const selected = beneficiaries.data?.find(
+                      (beneficiary) => beneficiary.id === event.target.value,
+                    );
+                    if (selected) {
+                      setReceiver(selected.accountReference);
+                      setIdem("");
+                    }
+                  }}
+                >
+                  <option value="">Choose a saved beneficiary (optional)</option>
+                  {beneficiaries.data
+                    .filter(
+                      (beneficiary) =>
+                        beneficiary.beneficiaryType === "INTERNAL" &&
+                        beneficiary.provider === "INTERNAL",
+                    )
+                    .map((beneficiary) => (
+                      <option key={beneficiary.id} value={beneficiary.id}>
+                        {beneficiary.displayName} · {beneficiary.accountReference}
+                      </option>
+                    ))}
+                </select>
+              </label>
+            )}
+
+            <label>
+              Amount
+              <input
+                required
+                inputMode="decimal"
+                pattern="^[0-9]+(\.[0-9]{1,8})?$"
+                min="0.00000001"
+                value={amount}
+                onChange={(event) => {
+                  setAmount(event.target.value);
+                  setIdem("");
+                }}
+                placeholder="0.00"
+              />
+            </label>
+
+            <label>
+              Currency
+              <select
+                required
+                value={currency}
+                onChange={(event) => {
+                  setCurrency(event.target.value);
+                  setIdem("");
+                }}
+              >
+                {(selectedSender?.balances ?? []).map((balance) => (
+                  <option key={balance.currencyCode} value={balance.currencyCode}>
+                    {balance.currencyCode}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <div className="p6-info-box">
+              <ShieldCheck size={16} /> Transfers are final financial operations in
+              this demo environment. Confirm the recipient account number and
+              amount. A transfer placed on risk hold is not a completed money
+              movement.
+            </div>
+
+            <button
+              className="btn btn-primary"
+              disabled={
+                mutation.isPending ||
+                !sender ||
+                !receiver ||
+                !amount ||
+                Number(amount) <= 0
+              }
+            >
+              {mutation.isPending ? "Submitting…" : "Submit transfer"}
+            </button>
+
+            {mutation.isError && (
+              <p className="p6-error-text" role="alert">
+                {errorMessage(mutation.error)}
+                {idem && " Retry the same request with the same idempotency key."}
+              </p>
+            )}
+
+            {mutation.isSuccess && (
+              <div className="p6-success-box">
+                <Check /> {mutation.data.message}
+                {mutation.data.transaction?.id && (
+                  <div>Transaction: {mutation.data.transaction.id}</div>
+                )}
+              </div>
+            )}
+          </form>
+        </article>
+
+        <aside className="portal-card p6-panel">
+          <h2>Before you transfer</h2>
+          <ul className="p6-steps">
+            <li>Sender account must belong to you.</li>
+            <li>Enter the recipient’s account number, not a database UUID.</li>
+            <li>Currency must be available on both accounts.</li>
+            <li>Backend may place a transfer on hold for risk review.</li>
+          </ul>
+          <p className="muted">
+            Canonical API: POST /api/v1/transfers. Both senderAccount and
+            receiverAccount are account-number strings. The legacy transaction
+            transfer route only authorizes and does not move money.
+          </p>
+        </aside>
+      </div>
+    </section>
+  );
 }
 
 export function BeneficiariesPage() {
  const qc=useQueryClient(); const [editing,setEditing]=useState<AnyRecord|null>(null); const [form,setForm]=useState({beneficiaryType:"INTERNAL",displayName:"",accountReference:"",provider:"INTERNAL",currencyCode:"BDT"});
- const q=useQuery({queryKey:["beneficiaries"],queryFn:async()=>{const d=unwrap(await api.get("/beneficiaries",{params:{page:1,limit:100}}));return d.beneficiaries??[];}});
+ const q=useQuery<CustomerBeneficiary[]>({queryKey:["beneficiaries"],queryFn:async()=>unwrap<CustomerBeneficiaryListResponse>(await api.get("/beneficiaries",{params:{page:1,limit:100}})).beneficiaries});
  const save=useMutation({mutationFn:async()=>editing?unwrap(await api.patch(`/beneficiaries/${editing.id}`,{displayName:form.displayName,accountReference:form.accountReference,provider:form.provider,currencyCode:form.currencyCode})):unwrap(await api.post("/beneficiaries",form)),onSuccess:async()=>{toast.success(editing?"Beneficiary updated":"Beneficiary created");setEditing(null);setForm({beneficiaryType:"INTERNAL",displayName:"",accountReference:"",provider:"INTERNAL",currencyCode:"BDT"});await qc.invalidateQueries({queryKey:["beneficiaries"]});},onError:e=>toast.error(errorMessage(e))});
  const del=useMutation({mutationFn:(id:string)=>api.delete(`/beneficiaries/${id}`),onSuccess:async()=>{toast.success("Beneficiary deleted");await qc.invalidateQueries({queryKey:["beneficiaries"]});},onError:e=>toast.error(errorMessage(e))});
- return <section className="portal-content p6-content"><PageHeading title="Beneficiaries" subtitle="Create, update and remove your saved transfer recipients."/><div className="p6-form-layout"><article className="portal-card p6-panel"><h2>{editing?"Edit beneficiary":"Add beneficiary"}</h2><form className="p6-form" onSubmit={e=>{e.preventDefault();save.mutate();}}><label>Type<select value={form.beneficiaryType} onChange={e=>setForm({...form,beneficiaryType:e.target.value})}><option>INTERNAL</option><option>EXTERNAL</option></select></label><label>Display name<input required maxLength={100} value={form.displayName} onChange={e=>setForm({...form,displayName:e.target.value})}/></label><label>Account reference<input required maxLength={128} value={form.accountReference} onChange={e=>setForm({...form,accountReference:e.target.value})}/></label><label>Provider<select value={form.provider} onChange={e=>setForm({...form,provider:e.target.value})}>{["INTERNAL","BKASH","NAGAD","ROCKET","PAYPAL","PAYONEER","WISE"].map(x=><option key={x}>{x}</option>)}</select></label><label>Currency code<input required minLength={3} maxLength={3} pattern="[A-Za-z]{3}" value={form.currencyCode} onChange={e=>setForm({...form,currencyCode:e.target.value.toUpperCase()})}/></label><div className="p6-form-actions"><button className="btn btn-primary" disabled={save.isPending}>{save.isPending?"Saving…":editing?"Save changes":"Create beneficiary"}</button>{editing&&<button type="button" className="btn btn-secondary" onClick={()=>{setEditing(null);setForm({beneficiaryType:"INTERNAL",displayName:"",accountReference:"",provider:"INTERNAL",currencyCode:"BDT"});}}>Cancel</button>}</div></form></article><article className="portal-card p6-panel"><div className="p6-panel-head"><div><h2>Saved beneficiaries</h2><p>Your saved recipients</p></div></div>{q.isLoading?<State/>:q.isError?<State kind="error" message={errorMessage(q.error)} retry={()=>void q.refetch()}/>:q.data.length===0?<State kind="empty" message="You have not added any beneficiaries yet."/>:<div className="p6-beneficiary-list">{q.data.map((b:AnyRecord)=><div className="p6-beneficiary" key={b.id}><div><strong>{b.displayName}</strong><span>{b.accountReference}</span><small>{b.beneficiaryType} · {b.provider??"No provider"} · {b.currencyCode}</small><Status value={b.status}/></div><div className="p6-inline-actions"><button className="btn btn-secondary btn-sm" onClick={()=>{setEditing(b);setForm({beneficiaryType:b.beneficiaryType,displayName:b.displayName,accountReference:b.accountReference,provider:b.provider??"INTERNAL",currencyCode:b.currencyCode});}}>Edit</button><button className="btn btn-danger btn-sm" disabled={del.isPending} onClick={()=>{if(confirm(`Delete beneficiary ${b.displayName}?`))del.mutate(b.id);}}>Delete</button></div></div>)}</div>}</article></div></section>;
+ return <section className="portal-content p6-content"><PageHeading title="Beneficiaries" subtitle="Create, update and remove your saved transfer recipients."/><div className="p6-form-layout"><article className="portal-card p6-panel"><h2>{editing?"Edit beneficiary":"Add beneficiary"}</h2><form className="p6-form" onSubmit={e=>{e.preventDefault();save.mutate();}}><label>Type<select value={form.beneficiaryType} onChange={e=>setForm({...form,beneficiaryType:e.target.value})}><option>INTERNAL</option><option>EXTERNAL</option></select></label><label>Display name<input required maxLength={100} value={form.displayName} onChange={e=>setForm({...form,displayName:e.target.value})}/></label><label>Account reference<input required maxLength={128} value={form.accountReference} onChange={e=>setForm({...form,accountReference:e.target.value})}/></label><label>Provider<select value={form.provider} onChange={e=>setForm({...form,provider:e.target.value})}>{["INTERNAL","BKASH","NAGAD","ROCKET","PAYPAL","PAYONEER","WISE"].map(x=><option key={x}>{x}</option>)}</select></label><label>Currency code<input required minLength={3} maxLength={3} pattern="[A-Za-z]{3}" value={form.currencyCode} onChange={e=>setForm({...form,currencyCode:e.target.value.toUpperCase()})}/></label><div className="p6-form-actions"><button className="btn btn-primary" disabled={save.isPending}>{save.isPending?"Saving…":editing?"Save changes":"Create beneficiary"}</button>{editing&&<button type="button" className="btn btn-secondary" onClick={()=>{setEditing(null);setForm({beneficiaryType:"INTERNAL",displayName:"",accountReference:"",provider:"INTERNAL",currencyCode:"BDT"});}}>Cancel</button>}</div></form></article><article className="portal-card p6-panel"><div className="p6-panel-head"><div><h2>Saved beneficiaries</h2><p>Your saved recipients</p></div></div>{q.isLoading?<State/>:q.isError?<State kind="error" message={errorMessage(q.error)} retry={()=>void q.refetch()}/>:!q.data?.length?<State kind="empty" message="You have not added any beneficiaries yet."/>:<div className="p6-beneficiary-list">{(q.data ?? []).map((b:AnyRecord)=><div className="p6-beneficiary" key={b.id}><div><strong>{b.displayName}</strong><span>{b.accountReference}</span><small>{b.beneficiaryType} · {b.provider??"No provider"} · {b.currencyCode}</small><Status value={b.status}/></div><div className="p6-inline-actions"><button className="btn btn-secondary btn-sm" onClick={()=>{setEditing(b);setForm({beneficiaryType:b.beneficiaryType,displayName:b.displayName,accountReference:b.accountReference,provider:b.provider??"INTERNAL",currencyCode:b.currencyCode});}}>Edit</button><button className="btn btn-danger btn-sm" disabled={del.isPending} onClick={()=>{if(confirm(`Delete beneficiary ${b.displayName}?`))del.mutate(b.id);}}>Delete</button></div></div>)}</div>}</article></div></section>;
 }
 
 export function NotificationsPage() {
  const qc=useQueryClient(); const [unread,setUnread]=useState(false);
- const q=useQuery({queryKey:["notifications",unread],queryFn:async()=>unwrap(await api.get("/notifications",{params:{page:1,limit:50,unreadOnly:String(unread)}}))});
+ const q=useQuery<CustomerNotificationListResponse>({queryKey:["notifications",unread],queryFn:async()=>unwrap<CustomerNotificationListResponse>(await api.get("/notifications",{params:{page:1,limit:50,unreadOnly:String(unread)}}))});
  const mark=useMutation({mutationFn:(id:string)=>api.patch(`/notifications/${id}/read`),onSuccess:()=>{toast.success("Notification marked as read");void qc.invalidateQueries({queryKey:["notifications"]});},onError:e=>toast.error(errorMessage(e))});
  const rows=q.data?.notifications??[];
  return <section className="portal-content p6-content"><PageHeading title="Notifications" subtitle="Review account and security updates." action={<label className="p6-check-filter"><input type="checkbox" checked={unread} onChange={e=>setUnread(e.target.checked)}/> Unread only</label>}/><article className="portal-card p6-panel"><div className="p6-panel-head"><div><h2>Inbox</h2><p>{q.data?.unreadCount??0} unread notifications</p></div></div>{q.isLoading?<State/>:q.isError?<State kind="error" message={errorMessage(q.error)} retry={()=>void q.refetch()}/>:rows.length===0?<State kind="empty" message="You are all caught up."/>:<div className="p6-notification-list">{rows.map((n:AnyRecord)=><div className={`p6-notification ${n.status==="SENT"?"unread":""}`} key={n.id}><span className="p6-notification-icon"><Bell size={18}/></span><div><strong>{n.title}</strong><p>{n.message}</p><small>{date(n.createdAt)} · {n.channel} · {n.status}</small></div>{n.status==="SENT"&&<button className="btn btn-secondary btn-sm" disabled={mark.isPending} onClick={()=>mark.mutate(n.id)}>Mark read</button>}</div>)}</div>}</article></section>;
@@ -93,7 +365,7 @@ export function NotificationsPage() {
 
 export function ProfilePage() {
  const qc=useQueryClient(); const {refreshUser}=useAuth();
- const q=useQuery({queryKey:["profile"],queryFn:async()=>unwrap(await api.get("/users/me"))});
+ const q=useQuery<CustomerProfile>({queryKey:["profile"],queryFn:async()=>unwrap<CustomerProfile>(await api.get("/users/me"))});
  const [name,setName]=useState<string|undefined>(undefined); const [phone,setPhone]=useState<string|undefined>(undefined);
  const profile=q.data as AnyRecord|undefined;
  const update=useMutation({mutationFn:async()=>unwrap(await api.patch("/users/me",{...(name!==undefined?{name}:{}),...(phone!==undefined?{phone:phone===""?null:phone}:{})})),onSuccess:async()=>{toast.success("Profile updated");await qc.invalidateQueries({queryKey:["profile"]});setName(undefined);setPhone(undefined);await refreshUser();},onError:e=>toast.error(errorMessage(e))});
@@ -101,14 +373,14 @@ export function ProfilePage() {
 }
 
 export function DecisionExplanationsPage() {
- const q=useQuery({queryKey:["decision-explanations"],queryFn:async()=>unwrap(await api.get("/customer/decision-explanations/me",{params:{page:1,limit:50}}))});
- const rows=Array.isArray(q.data)?q.data:q.data?.items??[];
+ const q=useQuery<CustomerDecisionExplanation[]>({queryKey:["decision-explanations"],queryFn:async()=>unwrap<CustomerDecisionExplanation[]>(await api.get("/customer/decision-explanations/me",{params:{page:1,limit:50}}))});
+ const rows=q.data ?? [];
  return <section className="portal-content p6-content"><PageHeading title="Decision explanations" subtitle="Understand security and risk decisions associated with your transactions."/><article className="portal-card p6-panel">{q.isLoading?<State/>:q.isError?<State kind="error" message={errorMessage(q.error)} retry={()=>void q.refetch()}/>:rows.length===0?<State kind="empty" message="There are no decision explanations for your account."/>:<div className="p6-decision-list">{rows.map((d:AnyRecord,i:number)=><div className="p6-decision" key={`${d.publicReference??i}`}><div className="p6-panel-head"><div><h2>{d.customerTitle??"Transaction decision"}</h2><p>{d.publicReference??"Decision record"} · {d.phase??"—"} · {date(d.createdAt)}</p></div><Status value={d.status??d.decision}/></div><p>{d.customerMessage}</p>{Array.isArray(d.reasonCodes)&&<p className="muted">Reason codes: {d.reasonCodes.join(", ")}</p>}{Array.isArray(d.requiredActions)&&<div><strong>Suggested actions</strong><ul>{d.requiredActions.map((a:string)=> <li key={a}>{a}</li>)}</ul></div>}{d.transactionImpact&&<div className="p6-info-box">Transaction status: {d.transactionImpact.transactionStatus??"—"} · Funds movement confirmed: {String(d.transactionImpact.fundsMovementConfirmed??"Not specified")}</div>}</div>)}</div>}</article></section>;
 }
 
 export function FxRequestDetailsPage() {
  const {requestId=""}=useParams();
- const q=useQuery({queryKey:["fx-request",requestId],queryFn:async()=>unwrap(await api.get(`/fx-requests/${requestId}`)).fxRequest});
+ const q=useQuery<CustomerFxRequest>({queryKey:["fx-request",requestId],queryFn:async()=>unwrap<{fxRequest:CustomerFxRequest}>(await api.get(`/fx-requests/${encodeURIComponent(requestId)}`)).fxRequest});
  if(q.isLoading)return <section className="portal-content"><State/></section>;
  if(q.isError)return <section className="portal-content"><State kind={(q.error as any)?.response?.status===403?"denied":"error"} message={errorMessage(q.error)} retry={()=>void q.refetch()}/></section>;
  const d=q.data as AnyRecord;

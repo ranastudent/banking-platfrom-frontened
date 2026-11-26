@@ -14,7 +14,16 @@ const money = (value: string | number, currency: string, symbol?: string) => {
   return `${symbol ?? currency} ${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
 const typeLabel = (type: AccountType) => ({ SAVINGS: "Savings", CURRENT: "Current", FOREIGN_CURRENCY: "Foreign currency" }[type as "SAVINGS" | "CURRENT" | "FOREIGN_CURRENCY"] ?? type);
-const dateLabel = (value: string) => new Date(value).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "2-digit" });
+const dateLabel = (value?: string) => {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+  });
+};
 
 export function AccountListPage() {
   const { data: accounts = [], isLoading, isError, error, refetch, isFetching } = useAccounts();

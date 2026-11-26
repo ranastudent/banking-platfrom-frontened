@@ -1,165 +1,36 @@
-# Banking Platform Frontend — Phase 1, 2 & 3
+# Banking Platform Frontend
 
-React + Vite + TypeScript frontend starter for the Banking & Financial Management Platform.
+React 19 + TypeScript + Vite client for the Banking & Financial Management Platform.
 
 ## Requirements
-- Node.js 22 LTS recommended
+- Node.js 22+
 - npm 10+
-- VS Code
 
-## Setup (Windows CMD)
-```cmd
-npm install
-copy .env.example .env
-```
-Keep `.env` local. Do not commit it or share access/refresh tokens.
-
-`.env`:
-```env
-VITE_API_BASE_URL=https://banking-platform-api-dzm3.onrender.com
-```
-Set only the API origin; the client appends `/api/v1` exactly once. The health endpoint is outside that prefix: `/health`.
-
-## Run and verify
-```cmd
-npm run typecheck
-npm run build
-npm run dev
-```
-Open `http://localhost:5173`.
-
-## Phase 3 implementation
-- 3.1 Axios API client with 20-second timeout, JSON headers and credentials.
-- 3.2 Environment-based API origin plus `/api/v1` prefix.
-- 3.3 Bearer access-token request interceptor.
-- 3.4 Central response interceptor with one-retry guard.
-- 3.5 Session-scoped access/refresh token storage utility.
-- 3.6 Single-flight refresh-token rotation; concurrent 401s share one refresh request; refresh failure clears session.
-- 3.7 React AuthProvider/useAuth state, initial session restoration via `/auth/me`, login/register/verify/logout methods.
-- 3.8 Normalized API errors including status, backend code, field errors and requestId.
-- 3.9 Authentication services for login, register, email verification, forgot/reset password, current user and logout.
-- 3.10 API client verification checklist in `src/lib/api/API_CLIENT_TESTING.md`.
-
-## Backend contract notes
-The supplied backend source confirms:
-- Login returns user, accessToken and refreshToken.
-- Refresh accepts `{ refreshToken }`, rotates both tokens, and revokes the old refresh token.
-- Logout accepts `{ refreshToken }`.
-- `/auth/me` is protected by bearer authentication.
-- Forgot password accepts `{ email }`; reset password accepts `{ token, password }`.
-- Refresh-token expiry is 7 days in the inspected service.
-
-The supplied frontend API guide notes that responses commonly use `{ success, data, requestId }`, but some endpoints differ. The auth service unwraps the common envelope and validates the login token result.
-
-## Security and scope
-Tokens are stored in `sessionStorage` for this portfolio/demo implementation, so they are cleared when the browser session ends. This is still accessible to JavaScript and is not equivalent to HttpOnly secure cookies; mitigate XSS and revisit the storage strategy before production. Do not log tokens. This is a demo application: use test users and isolated test data only; do not connect real customer funds or payment rails.
-
-## Phase 3 testing
-Follow `src/lib/api/API_CLIENT_TESTING.md`. TypeScript/build checks do not prove live API compatibility; verify with a dedicated test account against your backend.
-
-
-## Phase 4 — Public Pages 01–06
-
-Implemented public routes and responsive light/dark layouts based on the supplied page designs:
-
-| Page | Route | Status |
-|---|---|---|
-| 01 About | `/` and `/about` | Implemented |
-| 02 Login | `/login` | Implemented; connected to `POST /auth/login` |
-| 03 Registration | `/register` | Implemented; connected to `POST /auth/register` |
-| 04 Email Verification | `/verify-email?email=...` | Implemented; submits six-digit code as `{ email, otp }` |
-| 05 Forgot Password | `/forgot-password` | Implemented; connected to `POST /auth/forgot-password` |
-| 06 Reset Password | `/reset-password?token=...` | Implemented; connected to `POST /auth/reset-password` |
-
-### Phase 4 design-system and responsive audit
-- [x] Same page supports Light and Dark theme; user can switch themes without navigating away.
-- [x] Theme selection persists across reloads.
-- [x] Semantic palette maintains the 60/30/10 visual hierarchy in both themes.
-- [x] Shared typography, spacing, radii, inputs, buttons, cards and icon treatments.
-- [x] Desktop, tablet and mobile breakpoints; mobile navigation menu is available instead of hiding navigation.
-- [x] Forms remain fluid on small screens; OTP and registration layouts have narrow-phone adjustments.
-
-## Phase 4 behaviour and notes
-- Added public navigation, footer, theme switch, responsive layouts and visual illustrations built from CSS/SVG and Lucide icons.
-- Light and dark themes use shared semantic tokens for page canvas, secondary surfaces, borders, text and action accents; theme choice persists in localStorage.
-- Applied the 60/30/10 composition guideline: dominant page background, secondary cards/panels, and restrained high-contrast action accents.
-- Kept shared typography, spacing, control heights, border radii, button treatments, cards and icon sizing consistent across all six public pages.
-- Desktop-first responsive behavior: tablet authentication layouts stack the promo and form panels; mobile navigation becomes an accessible menu; narrow phones stack About content and use full-width form controls.
-- Login and registration use the existing AuthProvider and Axios API client.
-- Registration sends only `name`, `email`, optional `phone`, and `password`; confirm password and terms acceptance are frontend checks.
-- Email verification follows the current frontend API service contract `{ email, otp }`. No resend-code endpoint was present in the supplied frontend API service, so the countdown is visual only and does not send a resend request.
-- Forgot password sends `{ email }`; reset password reads `token` from the URL query string and sends `{ token, password }`.
-- The “Remember me” control is currently visual only; Phase 3 stores tokens in `sessionStorage` (tab/session scoped).
-- Google sign-in is intentionally not shown because it is not implemented by the supplied backend.
-- After login, the app currently returns to the public About page; authenticated dashboards and protected role-based routes belong to a later phase.
-- Logout UI is not part of this public-pages phase; it will be added with the authenticated application shell.
-
-### Run locally (Windows CMD)
-```cmd
-npm install
-copy .env.example .env
-npm run typecheck
-npm run build
-npm run dev
-```
-
-Keep `.env` local and never include it in shared ZIP files or source control.
-
-
-## Phase 5 — Role-Based Portal Layout
-
-Implemented role-aware protected routes and shared portal layouts for CUSTOMER, ADMIN, SUPPORT, and AUDITOR.
-
-- Successful login redirects to the dashboard associated with the authenticated user's `role`.
-- Protected routes require an authenticated session and the matching role.
-- Shared sidebar, responsive mobile drawer, header, theme toggle, profile menu, and logout are included.
-- Unauthorized routes render a 403 page; unknown routes render a 404 page.
-- Dashboard metric values and chart areas are explicitly demo placeholders until the corresponding dashboard APIs are integrated.
-- Non-dashboard navigation routes are protected scaffolds for their designated phases; they are not represented as completed business features.
-- Auditor navigation is read-only in the UI. Backend authorization remains the security authority.
-
-### Local development
-
-Set `VITE_API_BASE_URL=http://localhost:5000` in your local `.env` and run `npm run dev`.
-Do not include `.env` in ZIP files or source control. For production builds, configure the deployed API origin through the production environment.
-
-### Phase 5 checks
-
-Run `npm run typecheck` and `npm run build`, then test with one account per role. Confirm the API's `/auth/me` response contains a canonical `role` value of `CUSTOMER`, `ADMIN`, `SUPPORT`, or `AUDITOR`.
-
-
-## Phase 6 customer portal implementation
-
-The CUSTOMER portal pages 07–19 are implemented in `src/features/customer/` and routed under `/customer`. See `docs/PHASE-6-CUSTOMER-IMPLEMENTATION.md` for the endpoint mapping, authoritative Light/Dark design references, and release-gate status.
-
-Run locally:
-
-```bash
+## Setup (Windows PowerShell)
+```powershell
 npm ci
+Copy-Item .env.example .env
 npm run typecheck
 npm run build
 npm run dev
 ```
 
-Configure `VITE_API_BASE_URL` in `.env` to your backend origin (for example `http://localhost:5000`); the Axios client appends `/api/v1` exactly once.
+Configure `.env` with the backend **origin only**:
+```env
+VITE_API_BASE_URL=http://localhost:5000
+```
+The shared API client appends `/api/v1`. Do not add `/api/v1` to this variable. Keep `.env`, `.env.e2e`, credentials, and tokens local; only `.env.example` belongs in Git.
 
+## API integration
+- API calls use the shared Axios client in `src/lib/api/apiClient.ts`.
+- Authenticated requests attach the access token; refresh-token rotation is centralized.
+- Feature API modules live beside their domain's types and pages.
+- Deposit providers are loaded from `GET /api/v1/deposits/methods`; the UI renders backend-provided methods and availability. Stripe appears as a card method when the backend reports it enabled.
+- Stripe uses hosted Checkout. The frontend must never collect or store raw card numbers/CVC. After creating a deposit, open the deposit details and follow the verified `paymentUrl` over HTTPS.
+- A pending deposit is not a credited balance. The backend settles it only after verified provider status and ledger accounting.
+- Mock/simulator payments are virtual only and must never be represented as real payment.
 
-## CI/CD — GitHub Actions + AWS S3/CloudFront
-
-The workflow at `.github/workflows/frontend-cicd.yml` runs on pushes and pull requests
-targeting `main`. It installs locked dependencies with `npm ci`, runs the TypeScript
-check, and creates the Vite production build. A push to `main` additionally deploys the
-same build artifact to a private S3 bucket and invalidates the CloudFront entry-point cache.
-
-Before the first production deployment, configure the GitHub `production` Environment,
-AWS OIDC role, S3 bucket, CloudFront distribution, and the required GitHub variables/secrets.
-Follow [`docs/AWS_S3_CLOUDFRONT_DEPLOYMENT.md`](docs/AWS_S3_CLOUDFRONT_DEPLOYMENT.md)
-for the exact setup and least-privilege IAM examples.
-
-The frontend uses client-side routing. Configure CloudFront 403 and 404 custom error
-responses to serve `/index.html` with response code 200; keep the S3 bucket private.
-
-
-## Phase 7 Admin implementation
-
-See [Phase 7 implementation notes](docs/PHASE_7_IMPLEMENTATION.md) for the page-to-route map, API behavior and contract limitations.
+## Useful docs
+- `BACKEND_INTEGRATION_GUIDE.md` — backend/frontend contract and environment setup.
+- `PHASE36-API-CONTRACT-MAP.md` — route mapping and previously audited contracts.
+- `DEPOSIT_FRONTEND_IMPLEMENTATION.md` — deposit flow implementation notes.

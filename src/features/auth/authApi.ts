@@ -1,11 +1,9 @@
 import { api } from "../../lib/api/apiClient";
+import { unwrapApiData } from "../../lib/api/apiTypes";
 import { tokenStorage } from "../../lib/api/tokenStorage";
 import type { AuthResult, AuthUser, LoginPayload, RegisterPayload, VerifyEmailPayload } from "./auth.types";
 
-type Envelope<T> = { data?: T } & T;
-function unwrap<T>(response: { data: Envelope<T> }): T {
-  return (response.data?.data ?? response.data) as T;
-}
+const unwrap = <T = unknown>(response: unknown): T => unwrapApiData<T>(response);
 
 export const authApi = {
   async login(payload: LoginPayload): Promise<AuthResult> {

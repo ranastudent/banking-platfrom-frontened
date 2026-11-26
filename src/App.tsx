@@ -11,20 +11,22 @@ import { ForgotPasswordPage } from "./features/public/pages/ForgotPasswordPage";
 import { ResetPasswordPage } from "./features/public/pages/ResetPasswordPage";
 import { RequireAuth, RequireRole, roleHome } from "./app/router/RoleRoutes";
 import { PlaceholderPage, PortalLayout } from "./components/layout/PortalLayout";
-import { CustomerDashboardPage, TransactionsPage, TransactionDetailsPage, DepositPage, WithdrawalPage, TransferPage, BeneficiariesPage, NotificationsPage, ProfilePage, DecisionExplanationsPage, FxRequestDetailsPage } from "./features/customer/phase6/CustomerPages";
+import { CustomerDashboardPage, TransactionsPage, TransactionDetailsPage, WithdrawalPage, TransferPage, BeneficiariesPage, NotificationsPage, ProfilePage, DecisionExplanationsPage, FxRequestDetailsPage } from "./features/customer/pages/CustomerPages";
 import { AccountListPage } from "./features/customer/accounts/pages/AccountListPage";
 import { AccountDetailsPage } from "./features/customer/accounts/pages/AccountDetailsPage";
+import { CustomerDepositPage } from "./features/customer/deposits/CustomerDepositPage";
+import { AdminDepositsPage } from "./features/admin/pages/AdminDepositsPage";
 import {
   SupportDashboardPage, SupportCustomerSearchPage, SupportCustomerAccountsPage,
   SupportCustomerTransactionsPage, SupportBeneficiaryAssistancePage, SupportOperationsPage,
   SupportAuditLogsPage,
-} from "./features/support/SupportPages";
+} from "./features/support/pages/SupportPages";
 import {
   AdminDashboardPage, AdminUsersPage, AdminUserDetailsPage, AdminAccountsPage, AdminAccountDetailsPage,
   AdminTransactionsPage, AdminTransactionDetailsPage, AdminAuditLogsPage, AdminCurrenciesPage,
   AdminExchangeRatesPage, AdminReservesPage, AdminFxApprovalsPage, AdminRiskReviewsPage,
   FraudDashboardPage, FraudAlertsPage, FraudCasesPage, FraudModelsPage, MonitoringPage,
-} from "./features/admin/AdminPages";
+} from "./features/admin/pages/AdminPages";
 import {
   AuditorDashboardPage,
   AuditorAuditLogsPage,
@@ -33,7 +35,7 @@ import {
   AuditorApprovalsPage,
   AuditorFxRequestsPage,
   AuditorCurrencyReservePage,
-} from "./features/auditor/AuditorPages";
+} from "./features/auditor/pages/AuditorPages";
 
 function EntryRedirect() {
   const { user, isAuthenticated, isInitializing } = useAuth();
@@ -70,7 +72,7 @@ function App() {
                   <Route path="dashboard" element={<CustomerDashboardPage/>}/>
                   <Route path="accounts" element={<AccountListPage/>}/><Route path="accounts/:accountId" element={<AccountDetailsPage/>}/>
                   <Route path="transactions" element={<TransactionsPage/>}/><Route path="transactions/:transactionId" element={<TransactionDetailsPage/>}/>
-                  <Route path="transfer" element={<TransferPage/>}/><Route path="deposit" element={<DepositPage/>}/><Route path="withdrawal" element={<WithdrawalPage/>}/>
+                  <Route path="transfer" element={<TransferPage/>}/><Route path="deposit" element={<CustomerDepositPage/>}/><Route path="deposits/:depositId" element={<CustomerDepositPage/>}/><Route path="withdrawal" element={<WithdrawalPage/>}/>
                   <Route path="beneficiaries" element={<BeneficiariesPage/>}/>
                   <Route path="notifications" element={<NotificationsPage/>}/>
                   <Route path="profile" element={<ProfilePage/>}/><Route path="decision-explanations" element={<DecisionExplanationsPage/>}/><Route path="fx-requests/:requestId" element={<FxRequestDetailsPage/>}/>
@@ -83,6 +85,7 @@ function App() {
                   <Route path="users" element={<AdminUsersPage/>}/><Route path="users/:userId" element={<AdminUserDetailsPage/>}/>
                   <Route path="accounts" element={<AdminAccountsPage/>}/><Route path="accounts/:accountId" element={<AdminAccountDetailsPage/>}/>
                   <Route path="transactions" element={<AdminTransactionsPage/>}/><Route path="transactions/:transactionId" element={<AdminTransactionDetailsPage/>}/>
+                  <Route path="deposits" element={<AdminDepositsPage/>}/><Route path="deposits/:depositId" element={<AdminDepositsPage/>}/>
                   <Route path="currencies" element={<AdminCurrenciesPage/>}/>
                   <Route path="exchange-rates" element={<AdminExchangeRatesPage/>}/>
                   <Route path="reserves" element={<AdminReservesPage/>}/>

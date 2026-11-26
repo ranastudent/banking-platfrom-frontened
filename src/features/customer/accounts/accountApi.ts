@@ -1,19 +1,20 @@
 import { api } from "../../../lib/api/apiClient";
+import { unwrapApiData } from "../../../lib/api/apiTypes";
 import type { CustomerAccount, CreateAccountPayload } from "./account.types";
-
-type ApiEnvelope<T> = { success: boolean; data: T; requestId?: string };
 
 export const accountApi = {
   async list(): Promise<CustomerAccount[]> {
-    const { data } = await api.get<ApiEnvelope<{ accounts: CustomerAccount[] }>>("/accounts");
-    return data.data.accounts;
+    const result = unwrapApiData<{ accounts: CustomerAccount[] }>(await api.get("/accounts"));
+    return result.accounts;
   },
   async getById(accountId: string): Promise<CustomerAccount> {
-    const { data } = await api.get<ApiEnvelope<{ account: CustomerAccount }>>(`/accounts/${encodeURIComponent(accountId)}`);
-    return data.data.account;
+    const result = unwrapApiData<{ account: CustomerAccount }>(
+      await api.get(`/accounts/${encodeURIComponent(accountId)}`),
+    );
+    return result.account;
   },
   async create(payload: CreateAccountPayload): Promise<CustomerAccount> {
-    const { data } = await api.post<ApiEnvelope<{ account: CustomerAccount }>>("/accounts", payload);
-    return data.data.account;
+    const result = unwrapApiData<{ account: CustomerAccount }>(await api.post("/accounts", payload));
+    return result.account;
   },
 };

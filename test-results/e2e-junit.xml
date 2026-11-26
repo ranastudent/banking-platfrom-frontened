@@ -1,67 +1,61 @@
-<testsuites id="" name="" tests="3" failures="0" skipped="0" errors="1" time="140.735815">
-<testsuite name="customer-pages.spec.ts" timestamp="2026-11-21T10:47:55.003Z" hostname="chromium" tests="3" failures="0" skipped="0" time="66.696" errors="1">
-<testcase name="CUSTOMER browser + real API integration › customer pages load, render and call the backend without mocked APIs" classname="customer-pages.spec.ts" time="26.657">
+<testsuites id="" name="" tests="1" failures="0" skipped="0" errors="1" time="64.766674">
+<testsuite name="deposit-page.spec.ts" timestamp="2026-11-25T17:33:27.644Z" hostname="chromium" tests="1" failures="0" skipped="0" time="17.89" errors="1">
+<testcase name="Customer deposit frontend integration › loads provider methods, limits, account data and deposit history without initiating a payment" classname="deposit-page.spec.ts" time="17.89">
 <system-out>
 <![CDATA[
-[[ATTACHMENT|customer-pages-CUSTOMER-br-db6f8-backend-without-mocked-APIs-chromium\test-failed-1.png]]
+[[ATTACHMENT|deposit-page-Customer-depo-3016f-ithout-initiating-a-payment-chromium\test-failed-1.png]]
 
-[[ATTACHMENT|customer-pages-CUSTOMER-br-db6f8-backend-without-mocked-APIs-chromium\video.webm]]
+[[ATTACHMENT|deposit-page-Customer-depo-3016f-ithout-initiating-a-payment-chromium\video.webm]]
 
-[[ATTACHMENT|customer-pages-CUSTOMER-br-db6f8-backend-without-mocked-APIs-chromium\error-context.md]]
+[[ATTACHMENT|deposit-page-Customer-depo-3016f-ithout-initiating-a-payment-chromium\error-context.md]]
 
-[[ATTACHMENT|customer-pages-CUSTOMER-br-db6f8-backend-without-mocked-APIs-chromium\trace.zip]]
+[[ATTACHMENT|deposit-page-Customer-depo-3016f-ithout-initiating-a-payment-chromium\trace.zip]]
 ]]>
 </system-out>
-<error message="page.waitForResponse: Timeout 10000ms exceeded while waiting for event &quot;response&quot;" type="TimeoutError">
-<![CDATA[  [chromium] › customer-pages.spec.ts:6:3 › CUSTOMER browser + real API integration › customer pages load, render and call the backend without mocked APIs 
+<error message="apiRequestContext.post: Timeout 10000ms exceeded." type="TimeoutError">
+<![CDATA[  [chromium] › deposit-page.spec.ts:6:3 › Customer deposit frontend integration › loads provider methods, limits, account data and deposit history without initiating a payment 
 
-    TimeoutError: page.waitForResponse: Timeout 10000ms exceeded while waiting for event "response"
+    TimeoutError: apiRequestContext.post: Timeout 10000ms exceeded.
+    Call log:
+      - → POST http://127.0.0.1:5000/api/v1/auth/login
+        - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/159.0.8154.6 Safari/537.36
+        - accept: */*
+        - accept-encoding: gzip,deflate,br
+        - Content-Type: application/json
+        - content-length: 62
 
-       at support\network.ts:28
 
-      26 |
-      27 |     waitForResponse(pathFragment: string, method = "GET") {
-    > 28 |       return page.waitForResponse(
-         |                   ^
-      29 |         (response) =>
-      30 |           response.url().includes(pathFragment) &&
-      31 |           response.request().method() === method,
-        at Object.waitForResponse (D:\New_folder_(2)\Software development Project\banking-platfrom\frontend\banking-platform-frontend\e2e\support\network.ts:28:19)
-        at D:\New_folder_(2)\Software development Project\banking-platfrom\frontend\banking-platform-frontend\e2e\customer-pages.spec.ts:12:39
+       at support\auth.ts:20
+
+      18 |
+      19 |   const apiOrigin = (process.env.VITE_API_BASE_URL || "http://127.0.0.1:5000").replace(/\/+$/, "");
+    > 20 |   const response = await request.post(`${apiOrigin}/api/v1/auth/login`, {
+         |                                  ^
+      21 |     data: { email, password },
+      22 |     headers: { "Content-Type": "application/json" },
+      23 |   });
+        at loginAs (D:\New_folder_(2)\Software development Project\banking-platfrom\frontend\banking-platform-frontend\e2e\support\auth.ts:20:34)
+        at D:\New_folder_(2)\Software development Project\banking-platfrom\frontend\banking-platform-frontend\e2e\deposit-page.spec.ts:7:11
 
     attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
-    ..\test-results\customer-pages-CUSTOMER-br-db6f8-backend-without-mocked-APIs-chromium\test-failed-1.png
+    ..\test-results\deposit-page-Customer-depo-3016f-ithout-initiating-a-payment-chromium\test-failed-1.png
     ────────────────────────────────────────────────────────────────────────────────────────────────
 
     attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
-    ..\test-results\customer-pages-CUSTOMER-br-db6f8-backend-without-mocked-APIs-chromium\video.webm
+    ..\test-results\deposit-page-Customer-depo-3016f-ithout-initiating-a-payment-chromium\video.webm
     ────────────────────────────────────────────────────────────────────────────────────────────────
 
-    Error Context: ..\test-results\customer-pages-CUSTOMER-br-db6f8-backend-without-mocked-APIs-chromium\error-context.md
+    Error Context: ..\test-results\deposit-page-Customer-depo-3016f-ithout-initiating-a-payment-chromium\error-context.md
 
     attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
-    ..\test-results\customer-pages-CUSTOMER-br-db6f8-backend-without-mocked-APIs-chromium\trace.zip
+    ..\test-results\deposit-page-Customer-depo-3016f-ithout-initiating-a-payment-chromium\trace.zip
     Usage:
 
-        npx playwright show-trace ..\test-results\customer-pages-CUSTOMER-br-db6f8-backend-without-mocked-APIs-chromium\trace.zip
+        npx playwright show-trace ..\test-results\deposit-page-Customer-depo-3016f-ithout-initiating-a-payment-chromium\trace.zip
 
     ────────────────────────────────────────────────────────────────────────────────────────────────
 ]]>
 </error>
-</testcase>
-<testcase name="CUSTOMER browser + real API integration › account and transaction API contracts return the documented collection envelopes" classname="customer-pages.spec.ts" time="22.317">
-<system-out>
-<![CDATA[
-[[ATTACHMENT|customer-pages-CUSTOMER-br-cfad2-mented-collection-envelopes-chromium\trace.zip]]
-]]>
-</system-out>
-</testcase>
-<testcase name="CUSTOMER browser + real API integration › money movement pages load accounts and expose idempotent submission controls" classname="customer-pages.spec.ts" time="17.722">
-<system-out>
-<![CDATA[
-[[ATTACHMENT|customer-pages-CUSTOMER-br-42de1-mpotent-submission-controls-chromium\trace.zip]]
-]]>
-</system-out>
 </testcase>
 </testsuite>
 </testsuites>
