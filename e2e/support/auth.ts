@@ -1,4 +1,9 @@
 import { expect, type APIRequestContext, type Page } from "@playwright/test";
+import "dotenv/config";
+
+const env = (globalThis as typeof globalThis & {
+  process: { env: Record<string, string | undefined> };
+}).process.env;
 
 export type E2ERole = "CUSTOMER" | "ADMIN" | "SUPPORT" | "AUDITOR";
 
@@ -11,12 +16,12 @@ const roleEnv: Record<E2ERole, [string, string]> = {
 
 export async function loginAs(request: APIRequestContext, page: Page, role: E2ERole) {
   const [emailKey, passwordKey] = roleEnv[role];
-  const email = process.env[emailKey];
-  const password = process.env[passwordKey];
+  const email = env[emailKey];
+  const password = env[passwordKey];
   testEnvRequired(emailKey, email);
   testEnvRequired(passwordKey, password);
 
-  const apiOrigin = (process.env.VITE_API_BASE_URL || "http://127.0.0.1:5000").replace(/\/+$/, "");
+  const apiOrigin = (env.VITE_API_BASE_URL || "http://127.0.0.1:5000").replace(/\/+$/, "");
   const response = await request.post(`${apiOrigin}/api/v1/auth/login`, {
     data: { email, password },
     headers: { "Content-Type": "application/json" },

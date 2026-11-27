@@ -76,9 +76,29 @@ export function CustomerDepositPage() {
 
   const selectedAccount=accountsQ.data?.find(a=>a.id===accountId);
   const method=methodsQ.data?.methods?.find(m=>m.provider===provider);
-  const validAmount=/^\d+(\.\d{1,8})?$/.test(amount)&&Number(amount)>0;
   const limits=limitsQ.data;
-  const inRange=validAmount&&(!limits||(Number(amount)>=Number(limits.minimum)&&Number(amount)<=Number(limits.maximum)));
+  // Frontend guardrails for Stripe Checkout. These are platform minimums,
+  // not a claim that Stripe publishes a BDT-specific minimum.
+  const stripeMinimums: Record<string, number> = {
+    BDT: 100,
+    USD: 1,
+    EUR: 1,
+    GBP: 1,
+    JPY: 100,
+  };
+  const currencyDecimals = currency === "JPY" ? 0 : 2;
+  const validAmount =
+    /^\d+(\.\d{1,8})?$/.test(amount) &&
+    Number(amount) > 0 &&
+    (amount.split(".")[1]?.length ?? 0) <= currencyDecimals;
+  const providerMinimum = provider === "STRIPE"
+    ? (stripeMinimums[currency] ?? 0)
+    : 0;
+  const minimumAmount = Math.max(Number(limits?.minimum ?? 0), providerMinimum);
+  const maximumAmount = Number(limits?.maximum ?? Number.POSITIVE_INFINITY);
+  const belowMinimum = validAmount && Number(amount) < minimumAmount;
+  const aboveMaximum = validAmount && Number(amount) > maximumAmount;
+  const inRange = validAmount && !belowMinimum && !aboveMaximum;
   const quoteQ=useQuery({
     queryKey:["deposits","quote",accountId,provider,amount,currency],
     queryFn:()=>depositApi.quote({accountId,provider,amount,currency}),
@@ -97,7 +117,34 @@ export function CustomerDepositPage() {
   });
   const createM=useMutation({
     mutationFn:()=>{const key=idemRef.current||crypto.randomUUID();idemRef.current=key;setIdempotencyKey(key);return depositApi.create({accountId,amount,currency,provider},key);},
-    onSuccess:async(result)=>{resetIdem();setConfirmOpen(false);openDeposit(result.depositId);toast.success("Deposit request created. Your available balance has not been credited while payment is pending.");await qc.invalidateQueries({queryKey:["deposits","history"]});},
+    onSuccess:async(result)=>{
+      resetIdem();
+      setConfirmOpen(false);
+      await qc.invalidateQueries({queryKey:["deposits","history"]});
+
+      // Stripe Checkout is hosted by Stripe. Do not collect card PAN/CVC in
+      // this application; redirect the customer to the HTTPS Checkout URL.
+      if (result.paymentUrl) {
+        try {
+          const checkoutUrl = new URL(result.paymentUrl);
+          const isStripeCheckout = checkoutUrl.protocol === "https:" &&
+            (checkoutUrl.hostname === "checkout.stripe.com");
+          if (!isStripeCheckout) throw new Error("The payment provider returned an untrusted checkout URL.");
+          toast.success("Deposit request created. Redirecting to secure Stripe Checkout…");
+          window.location.assign(checkoutUrl.toString());
+          return;
+        } catch (error) {
+          toast.error(error instanceof Error ? error.message : "Could not open secure checkout.");
+        }
+      }
+
+      openDeposit(result.depositId);
+      toast.success(
+        result.status === "PROCESSING"
+          ? "The payment request is processing. Do not submit another deposit; check its status."
+          : "Deposit request created. Your balance will be credited only after verified payment settlement."
+      );
+    },
     onError:(e)=>toast.error(errorText(e)),
   });
   const demoM=useMutation({
@@ -141,10 +188,11 @@ export function CustomerDepositPage() {
           <label className="dep-field"><span>Deposit to account</span><select value={accountId} required onChange={e=>{setAccountId(e.target.value);resetIdem();}}><option value="">Select account</option>{(accountsQ.data??[]).map(a=><option key={a.id} value={a.id}>{a.accountNumber} · {a.accountType} · {a.status}</option>)}</select><small>Account number is masked in the summary after selection.</small></label>
           {accountsQ.isLoading&&<p className="muted">Loading your accounts…</p>}{accountsQ.isError&&<DepositNotice kind="warning">Could not load accounts. <button className="dep-inline-btn" onClick={()=>void accountsQ.refetch()}>Retry</button></DepositNotice>}
           {selectedAccount&&<div className="dep-account-summary"><div className="dep-account-icon"><Wallet/></div><div><strong>•••• {selectedAccount.accountNumber.slice(-4)}</strong><span>{selectedAccount.accountType} · {selectedAccount.status}</span></div><div className="dep-account-balances">{(selectedAccount.balances??[]).map(b=><small key={b.currencyCode}>{money(b.availableBalance,b.currencyCode)} available</small>)}</div></div>}
-          <div className="dep-field-grid"><label className="dep-field"><span>Currency</span><select value={currency} onChange={e=>{setCurrency(e.target.value);resetIdem();}} disabled={!selectedAccount}><option value="">Choose currency</option>{(selectedAccount?.balances??[]).map(b=><option key={b.currencyCode} value={b.currencyCode}>{b.currencyCode}</option>)}</select></label><label className="dep-field"><span>Amount</span><div className="dep-amount-wrap"><span>{currency}</span><input value={amount} onChange={e=>{setAmount(e.target.value);resetIdem();}} inputMode="decimal" autoComplete="off" placeholder="0.00" aria-describedby="deposit-amount-help"/></div><small id="deposit-amount-help">Minimum {limits?money(limits.minimum,currency):"—"} · Maximum {limits?money(limits.maximum,currency):"—"}</small></label></div>
+          <div className="dep-field-grid"><label className="dep-field"><span>Currency</span><select value={currency} onChange={e=>{setCurrency(e.target.value);resetIdem();}} disabled={!selectedAccount}><option value="">Choose currency</option>{(selectedAccount?.balances??[]).map(b=><option key={b.currencyCode} value={b.currencyCode}>{b.currencyCode}</option>)}</select></label><label className="dep-field"><span>Amount</span><div className="dep-amount-wrap"><span>{currency}</span><input value={amount} onChange={e=>{setAmount(e.target.value);resetIdem();}} inputMode="decimal" autoComplete="off" placeholder="0.00" aria-describedby="deposit-amount-help"/></div><small id="deposit-amount-help">Minimum {minimumAmount>0?money(minimumAmount,currency):"—"} · Maximum {limits?money(limits.maximum,currency):"—"}</small></label></div>
           <div className="dep-quick-amounts">{[500,1000,2000,5000].map(n=><button key={n} type="button" onClick={()=>{setAmount(String(n));resetIdem();}}>{n.toLocaleString()}</button>)}</div>
-          {amount&&!validAmount&&<p className="dep-validation" role="alert">Enter a positive amount with up to 8 decimal places.</p>}
-          {amount&&validAmount&&limits&&!inRange&&<p className="dep-validation" role="alert">Amount must be between {limits.minimum} and {limits.maximum} {currency}.</p>}
+          {amount&&!validAmount&&<p className="dep-validation" role="alert">{currency==="JPY"?"Enter a positive whole-number amount in JPY.":"Enter a positive amount with no more than 2 decimal places."}</p>}
+          {amount&&belowMinimum&&<p className="dep-validation" role="alert">Minimum deposit through {depositProviderLabel(provider,method)} is {money(minimumAmount,currency)}. Please enter at least {money(minimumAmount,currency)}.</p>}
+          {amount&&aboveMaximum&&<p className="dep-validation" role="alert">Maximum deposit amount is {money(maximumAmount,currency)}.</p>}
           {selectedAccount&&selectedAccount.status!=="ACTIVE"&&<p className="dep-validation">This account is {selectedAccount.status.toLowerCase()} and cannot receive deposits.</p>}
           {demoMode&&<label className="dep-field"><span>Demo funding reason</span><input value={demoReason} onChange={e=>setDemoReason(e.target.value)} minLength={3} maxLength={300}/><small>Internal synthetic funding, separate from an external provider payment.</small></label>}
           {!demoMode&&quoteQ.isFetching&&inRange&&<p className="muted dep-quote-loading"><Loader2 size={15}/> Calculating fee and net credit…</p>}
@@ -161,7 +209,7 @@ export function CustomerDepositPage() {
       </aside>
     </div>
 
-    {confirmOpen&&<div className="dep-modal-backdrop" role="presentation"><section className="dep-modal" role="dialog" aria-modal="true" aria-labelledby="dep-confirm-title"><button className="dep-modal-close" aria-label="Close confirmation" onClick={()=>setConfirmOpen(false)}><XCircle size={20}/></button><div className="dep-modal-icon"><ShieldCheck/></div><p className="eyebrow">CONFIRM PAYMENT</p><h2 id="dep-confirm-title">Review your deposit</h2><p className="muted">Confirm the amount and destination before creating the payment request.</p><div className="dep-confirm-rows"><div><span>Payment method</span><strong>{demoMode?"Demo funding":depositProviderLabel(provider,method)}</strong></div><div><span>Account</span><strong>{selectedAccount?.accountNumber}</strong></div><div><span>Amount</span><strong>{money(amount,currency)}</strong></div><div><span>Fee</span><strong>{demoMode?money(0,currency):money(quoteQ.data?.fee,currency)}</strong></div><div><span>Total payment</span><strong>{demoMode?money(amount,currency):money(Number(amount)+Number(quoteQ.data?.fee??0),currency)}</strong></div><div><span>Net credit</span><strong>{demoMode?money(amount,currency):money(quoteQ.data?.netAmount,currency)}</strong></div></div><DepositNotice kind="warning">A deposit is credited only after verified payment settlement. Do not refresh or submit a second request while processing.</DepositNotice><div className="dep-modal-actions"><button className="btn btn-secondary" onClick={()=>setConfirmOpen(false)} disabled={createM.isPending||demoM.isPending}>Go back</button><button className="btn btn-primary" onClick={()=>demoMode?demoM.mutate():createM.mutate()} disabled={createM.isPending||demoM.isPending}>{createM.isPending||demoM.isPending?"Submitting…":"Confirm deposit"}</button></div></section></div>}
+    {confirmOpen&&<div className="dep-modal-backdrop" role="presentation"><section className="dep-modal" role="dialog" aria-modal="true" aria-labelledby="dep-confirm-title"><button className="dep-modal-close" aria-label="Close confirmation" onClick={()=>setConfirmOpen(false)}><XCircle size={20}/></button><div className="dep-modal-icon"><ShieldCheck/></div><p className="eyebrow">CONFIRM PAYMENT</p><h2 id="dep-confirm-title">Review your deposit</h2><p className="muted">Confirm the amount and destination before creating the payment request.</p><div className="dep-confirm-rows"><div><span>Payment method</span><strong>{demoMode?"Demo funding":depositProviderLabel(provider,method)}</strong></div><div><span>Account</span><strong>{selectedAccount?.accountNumber}</strong></div><div><span>Amount</span><strong>{money(amount,currency)}</strong></div><div><span>Fee</span><strong>{demoMode?money(0,currency):money(quoteQ.data?.fee,currency)}</strong></div><div><span>Total payment</span><strong>{demoMode?money(amount,currency):money(Number(amount)+Number(quoteQ.data?.fee??0),currency)}</strong></div><div><span>Net credit</span><strong>{demoMode?money(amount,currency):money(quoteQ.data?.netAmount,currency)}</strong></div></div><DepositNotice kind="warning">A deposit is credited only after verified payment settlement. Do not refresh or submit a second request while processing.</DepositNotice><div className="dep-modal-actions"><button className="btn btn-secondary" onClick={()=>setConfirmOpen(false)} disabled={createM.isPending||demoM.isPending}>Go back</button><button className="btn btn-primary" onClick={()=>demoMode?demoM.mutate():createM.mutate()} disabled={createM.isPending||demoM.isPending}>{createM.isPending||demoM.isPending?"Submitting…":(provider==="STRIPE"?"Confirm & Pay":"Confirm deposit")}</button></div></section></div>}
 
     <section className="portal-card dep-history-card">
       <div className="dep-history-heading"><div><p className="eyebrow">ACTIVITY</p><h2>Deposit history</h2><p className="muted">Requests and verified settlement records.</p></div><button className="btn btn-secondary" onClick={()=>void historyQ.refetch()}><RefreshCw size={15}/> Refresh</button></div>
